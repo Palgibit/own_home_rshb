@@ -1,0 +1,583 @@
+/* Навигатор «Путь к своему дому» */
+
+.nav-page {
+  padding: 40px 0 56px;
+}
+
+.nav-page .back-link {
+  margin-bottom: 28px;
+}
+
+.nav-tabs {
+  max-width: 420px;
+  margin-bottom: 24px;
+}
+
+/* ── Раскладка: слева вопросы, справа маршрут ──────── */
+
+.nav-grid {
+  display: grid;
+  grid-template-columns: minmax(300px, 400px) minmax(0, 1fr);
+  align-items: start;
+  gap: 20px;
+}
+
+.nav-side,
+.nav-main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Вопросы ───────────────────────────────────────── */
+
+.nav-question {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.nav-question-title {
+  padding: 0;
+  color: var(--color-text);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.nav-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.nav-option {
+  display: flex;
+  min-height: 48px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.nav-option:hover:not(:disabled) {
+  border-color: var(--color-accent);
+}
+
+.nav-option:focus-visible,
+.step-check:focus-visible,
+.matrix-preset:focus-visible,
+.matrix-scroll:focus-visible {
+  outline: 3px solid var(--color-lime);
+  outline-offset: 2px;
+}
+
+.nav-option.is-active {
+  border-color: var(--color-brand);
+  background: var(--color-soft);
+  box-shadow: inset 0 0 0 1px var(--color-brand);
+}
+
+.nav-option:disabled {
+  border-style: dashed;
+  color: var(--color-muted);
+  background: #f7f8f6;
+  cursor: not-allowed;
+}
+
+.nav-option-label {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.nav-option-hint {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.nav-blocked {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.nav-blocked strong {
+  color: var(--color-text);
+}
+
+/* Значение параметра в тексте из конфига */
+.param-value {
+  color: var(--color-brand-dark);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* ── Прогресс ──────────────────────────────────────── */
+
+.nav-progress {
+  gap: 12px;
+}
+
+.nav-progress-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 16px;
+}
+
+.nav-progress-count {
+  color: var(--color-muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.progress-bar {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-soft);
+}
+
+.progress-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-accent);
+  transition: width 300ms ease;
+}
+
+.nav-change {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ── Таймлайн ──────────────────────────────────────── */
+
+.timeline {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline-stage {
+  position: relative;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 14px;
+  padding-bottom: 20px;
+}
+
+/* Вертикальная линия между этапами */
+.timeline-stage:not(:last-child)::before {
+  position: absolute;
+  top: 36px;
+  bottom: 0;
+  left: 17px;
+  width: 2px;
+  background: var(--color-border);
+  content: "";
+}
+
+.stage-marker {
+  position: relative;
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 2px solid var(--color-accent);
+  border-radius: 50%;
+  color: var(--color-brand-dark);
+  background: var(--color-surface);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.stage-marker.is-done {
+  border-color: var(--color-brand);
+  color: #fff;
+  background: var(--color-brand);
+}
+
+.stage-body {
+  min-width: 0;
+}
+
+.stage-title {
+  margin: 6px 0 12px;
+  color: var(--color-text);
+  font-size: 17px;
+  letter-spacing: -0.01em;
+}
+
+.stage-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step-card {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 12px;
+  max-height: 600px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  animation: step-in 420ms ease both;
+}
+
+.step-card.is-done {
+  background: #fafcf9;
+}
+
+.step-card.is-done .step-title,
+.step-card.is-done .step-text {
+  color: var(--color-muted);
+}
+
+.step-card.is-leaving,
+.timeline-stage.is-leaving {
+  overflow: hidden;
+  pointer-events: none;
+  animation: step-out 360ms ease forwards;
+}
+
+@keyframes step-in {
+  from {
+    border-color: var(--color-accent);
+    background: var(--color-good-bg);
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  60% {
+    border-color: var(--color-accent);
+    background: var(--color-good-bg);
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes step-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-color: var(--color-bad);
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}
+
+.step-check {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  padding: 0;
+  border: 2px solid var(--color-border);
+  border-radius: 8px;
+  color: #fff;
+  background: var(--color-surface);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.step-check:hover {
+  border-color: var(--color-accent);
+}
+
+.step-check[aria-pressed="true"] {
+  border-color: var(--color-brand);
+  background: var(--color-brand);
+}
+
+.step-body {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.step-title {
+  margin: 2px 0 0;
+  color: var(--color-text);
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.step-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--color-warn-bg);
+  color: #5c4300;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.step-text {
+  margin: 0;
+  color: #4c5a4f;
+  font-size: 14px;
+  line-height: 1.5;
+  animation: text-in 420ms ease;
+}
+
+@keyframes text-in {
+  from {
+    opacity: 0.2;
+  }
+}
+
+.step-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 4px;
+}
+
+.step-calc {
+  color: var(--color-brand);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.step-calc:hover {
+  text-decoration: underline;
+}
+
+.service-chip {
+  padding: 4px 10px;
+  border: 1px solid #cfe3c8;
+  border-radius: 999px;
+  color: var(--color-brand-dark);
+  background: #f7fbf5;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+a.service-chip:hover {
+  border-color: var(--color-brand);
+}
+
+.service-chip.is-stub {
+  border-style: dashed;
+  cursor: help;
+}
+
+/* ── Матрица «шаг × сценарий» ──────────────────────── */
+
+.matrix-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.matrix-legend i {
+  margin-right: 4px;
+  font-style: normal;
+}
+
+.matrix-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+}
+
+.matrix {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+
+.matrix th,
+.matrix td {
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--color-border);
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* Первый столбец с названием шага не уезжает при прокрутке */
+.matrix tbody th[scope="row"],
+.matrix-corner {
+  position: sticky;
+  z-index: 1;
+  left: 0;
+  width: 240px;
+  min-width: 180px;
+  padding-left: 14px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 600;
+  text-align: left;
+}
+
+.matrix thead th {
+  vertical-align: bottom;
+  background: var(--color-surface);
+}
+
+.matrix-corner {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.matrix-preset {
+  display: block;
+  width: 100%;
+  padding: 4px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--color-brand-dark);
+  background: none;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.3;
+  cursor: pointer;
+}
+
+.matrix-preset:hover {
+  background: var(--color-soft);
+}
+
+.matrix-count {
+  display: block;
+  color: var(--color-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.matrix .is-current {
+  background: #f3f9f0;
+}
+
+.matrix-stage th {
+  padding-top: 14px;
+  background: var(--color-background);
+  color: var(--color-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.matrix-stage th {
+  position: sticky;
+  left: 0;
+  padding-left: 14px;
+}
+
+.matrix-mark {
+  color: #c4ccc5;
+  font-size: 14px;
+  font-style: normal;
+  cursor: default;
+}
+
+.matrix-mark.is-shown {
+  color: var(--color-brand);
+  cursor: help;
+}
+
+.matrix-mark.is-special {
+  color: var(--chart-before);
+  font-size: 15px;
+  cursor: help;
+}
+
+/* ── Адаптивность ──────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .nav-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 620px) {
+  .nav-page {
+    padding-top: 28px;
+  }
+
+  .nav-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .timeline-stage {
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .stage-marker {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .timeline-stage:not(:last-child)::before {
+    top: 28px;
+    left: 13px;
+  }
+
+  .stage-title {
+    margin-top: 3px;
+  }
+
+  .step-card {
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .matrix tbody th[scope="row"],
+  .matrix-corner {
+    width: 150px;
+    min-width: 150px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step-card,
+  .step-text,
+  .step-card.is-leaving,
+  .timeline-stage.is-leaving {
+    animation-duration: 1ms;
+  }
+}

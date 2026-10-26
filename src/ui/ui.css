@@ -1,0 +1,342 @@
+/* Общие компоненты: кликабельное число, числовое поле */
+
+/* ── ExplainableNumber ───────────────────────────── */
+
+.explain {
+  position: relative;
+  display: inline-block;
+}
+
+.explain-value {
+  padding: 0;
+  border: 0;
+  border-bottom: 1.5px dotted currentColor;
+  color: inherit;
+  background: none;
+  font-weight: inherit;
+  cursor: help;
+}
+
+.explain-value:hover {
+  color: var(--color-brand);
+}
+
+.explain-value:focus-visible {
+  outline: 3px solid var(--color-lime);
+  outline-offset: 2px;
+}
+
+.explain-popover {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 8px);
+  left: 0;
+  display: flex;
+  width: min(340px, calc(100vw - 32px));
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+  box-shadow: 0 18px 40px rgb(28 57 32 / 16%);
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: 0;
+  text-align: left;
+}
+
+.explain-popover.is-right {
+  right: 0;
+  left: auto;
+}
+
+.explain-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.explain-close {
+  padding: 0 4px;
+  border: 0;
+  color: var(--color-muted);
+  background: none;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.explain-formula {
+  display: block;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--color-soft);
+  color: var(--color-brand-dark);
+  font-family: "Consolas", "Menlo", monospace;
+  font-size: 12.5px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.explain-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.explain-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--color-muted);
+}
+
+.explain-num {
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.explain-hint {
+  color: var(--color-muted);
+}
+
+/* На телефоне поповер — «шторка» снизу экрана, чтобы не вылезал за край */
+
+@media (max-width: 620px) {
+  .explain-popover {
+    position: fixed;
+    top: auto;
+    right: 16px;
+    bottom: 16px;
+    left: 16px;
+    width: auto;
+  }
+}
+
+/* ── NumberField ──────────────────────────────────── */
+
+.field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.field-box {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  transition: border-color 160ms ease;
+}
+
+.field-box:focus-within {
+  border-color: var(--color-accent);
+}
+
+.field-input {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  color: var(--color-text);
+  background: none;
+  font: inherit;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.field-unit {
+  flex: 0 0 auto;
+  margin-left: 8px;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.field-range {
+  width: 100%;
+  margin: 2px 0 0;
+  accent-color: var(--color-brand);
+}
+
+.field-hint {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* ── Общая раскладка страниц модулей ───────────────── */
+
+.page-title {
+  margin: 0;
+  color: var(--color-brand-dark);
+  font-size: clamp(36px, 4.6vw, 54px);
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+}
+
+.page-lead {
+  max-width: 640px;
+  margin: 14px 0 24px;
+  color: var(--color-muted);
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.panel {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px;
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.panel-title,
+.results-title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+
+.panel-subtitle {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 16px;
+}
+
+/* Переключатель из двух-трёх вариантов */
+.segmented {
+  display: flex;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--color-soft);
+}
+
+.segmented-item {
+  flex: 1;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  color: var(--color-muted);
+  background: none;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.segmented-item.is-active {
+  color: var(--color-brand-dark);
+  background: var(--color-surface);
+  box-shadow: 0 2px 8px rgb(28 57 32 / 10%);
+}
+
+.scenario-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.scenario-chip {
+  padding: 9px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.scenario-chip:hover {
+  border-color: var(--color-accent);
+}
+
+.scenario-chip.is-active {
+  border-color: var(--color-brand);
+  color: #fff;
+  background: var(--color-brand);
+}
+
+.scenario-description {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Подсказки и предупреждения */
+.note {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--color-soft);
+  color: #4c5a4f;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.note-warn {
+  background: var(--color-warn-bg);
+  color: #5c4300;
+}
+
+.note-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.note-action p {
+  margin: 0;
+}
+
+.button-secondary {
+  flex: 0 0 auto;
+  min-height: 40px;
+  border: 1px solid var(--color-brand);
+  color: var(--color-brand);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.button-secondary:hover {
+  color: #fff;
+  background: var(--color-brand);
+}
+
+@media (max-width: 620px) {
+  .panel {
+    padding: 16px;
+  }
+
+  .note-action {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

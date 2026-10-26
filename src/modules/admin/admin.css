@@ -1,0 +1,417 @@
+/* Админка. Общие классы (.panel, .field, .scenario-chip, .note, .compare-table) — из ui.css и simulator.css. */
+
+.admin-page {
+  padding: 40px 0 120px; /* снизу место под панель «Сохранить» */
+}
+
+.admin-page .back-link {
+  margin-bottom: 28px;
+}
+
+.admin-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.admin-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.admin-stack {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.admin-columns {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  align-items: start;
+  gap: 20px;
+}
+
+.admin-list {
+  position: sticky;
+  top: 16px;
+}
+
+.admin-list-items {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.admin-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px;
+}
+
+.admin-login {
+  max-width: 420px;
+}
+
+/* ── Поля ──────────────────────────────────────────── */
+
+.admin-input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  resize: vertical;
+}
+
+.admin-input:focus {
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+.admin-input.is-mono,
+.admin-page code,
+.admin-pre {
+  font-family: "Consolas", "Menlo", monospace;
+  font-size: 13px;
+}
+
+.admin-page code {
+  color: var(--color-brand-dark);
+}
+
+.admin-json {
+  min-height: 320px;
+  white-space: pre;
+  tab-size: 2;
+}
+
+.admin-status {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.admin-status.is-good {
+  color: var(--color-good);
+  font-weight: 600;
+}
+
+.admin-status.is-bad {
+  color: var(--color-bad);
+  font-weight: 600;
+}
+
+/* Параметр (глобальный, сценария, сервис) — карточка с крестиком «удалить» */
+.admin-param {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 44px 14px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+}
+
+.admin-param-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(70px, 0.5fr) minmax(0, 2.4fr);
+  gap: 12px;
+}
+
+.admin-remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 50%;
+  color: var(--color-muted);
+  background: none;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.admin-remove:hover {
+  color: var(--color-bad);
+  background: var(--color-bad-bg);
+}
+
+.admin-link-button {
+  align-self: flex-start;
+  padding: 4px 0;
+  border: 0;
+  color: var(--color-brand);
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-link-button.is-danger,
+.button-secondary.is-danger {
+  color: var(--color-bad);
+  border-color: var(--color-bad);
+}
+
+.button-secondary.is-danger:hover {
+  color: #fff;
+  background: var(--color-bad);
+}
+
+.admin-page button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.admin-id {
+  color: var(--color-muted);
+}
+
+/* ── Формулы эффектов ──────────────────────────────── */
+
+.admin-effects {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+
+.admin-effect {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border: 1px dashed var(--color-border);
+  border-radius: 14px;
+}
+
+.admin-effect.is-used {
+  border-style: solid;
+  border-color: var(--color-accent);
+  background: var(--color-soft);
+}
+
+.admin-effect .field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-vars summary {
+  color: var(--color-brand);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-vars-title {
+  margin: 14px 0 6px;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.admin-vars-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.admin-var {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  max-width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-var:hover {
+  border-color: var(--color-accent);
+}
+
+.admin-var span {
+  color: var(--color-muted);
+}
+
+.admin-var b {
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-changed td:last-child {
+  color: var(--color-brand);
+  font-weight: 700;
+}
+
+/* ── Навигатор, модуль 3 ───────────────────────────── */
+
+.admin-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+.admin-counts b {
+  color: var(--color-text);
+  font-size: 18px;
+}
+
+.admin-pre {
+  overflow-x: auto;
+  margin: 10px 0 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--color-soft);
+  color: var(--color-brand-dark);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.admin-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 14px;
+}
+
+.admin-checks legend {
+  margin-bottom: 8px;
+}
+
+.admin-checks input {
+  accent-color: var(--color-brand);
+}
+
+/* ── Панель «Сохранить» ────────────────────────────── */
+
+.admin-savebar {
+  position: fixed;
+  z-index: 30;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: 12px 16px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: 0 -8px 24px rgb(28 57 32 / 8%);
+}
+
+.admin-savebar.has-errors {
+  border-top-color: var(--color-bad);
+}
+
+.admin-savebar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 1184px;
+  margin: 0 auto;
+  font-size: 14px;
+}
+
+.admin-savebar-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.admin-savebar .button {
+  min-height: 42px;
+}
+
+.admin-errors {
+  max-width: 1184px;
+  max-height: 32vh;
+  overflow-y: auto;
+  margin: 10px auto 0;
+  padding-left: 20px;
+  color: var(--color-bad);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* ── Телефон ───────────────────────────────────────── */
+
+@media (max-width: 1000px) {
+  .admin-param-main {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(70px, 0.5fr);
+  }
+
+  .admin-param-main > :last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 860px) {
+  .admin-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-list {
+    position: static;
+  }
+
+  .admin-list-items {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 620px) {
+  .admin-page {
+    padding-top: 28px;
+  }
+
+  .admin-top,
+  .admin-savebar-inner {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-param-main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-effects {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-savebar-actions .button {
+    flex: 1;
+  }
+}

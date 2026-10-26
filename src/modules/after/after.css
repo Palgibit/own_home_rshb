@@ -1,0 +1,470 @@
+/* Жизнь после ипотеки. Общие классы (.feature, .metric-card, .verdict-rows,
+   .compare-table) — из simulator.css и ui.css. */
+
+.after-content {
+  transition: opacity 200ms ease;
+}
+
+.after-content.is-loading {
+  opacity: 0.55;
+}
+
+.after-loading {
+  margin-top: 16px;
+}
+
+/* ── Гость / клиент ─────────────────────────────────── */
+
+.after-modes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.after-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+  color: var(--color-muted);
+  font-size: 13px;
+  text-decoration: none;
+  transition: border-color 160ms ease;
+}
+
+.after-mode strong {
+  color: var(--color-text);
+  font-size: 15px;
+}
+
+.after-mode:hover {
+  border-color: var(--color-accent);
+}
+
+.after-mode.is-active {
+  border-color: var(--color-brand);
+  background: var(--color-soft);
+  box-shadow: inset 0 0 0 1px var(--color-brand);
+}
+
+.after-mode.is-active strong {
+  color: var(--color-brand-dark);
+}
+
+.after-source {
+  margin-bottom: 16px;
+}
+
+/* Вход */
+.login-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.login-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.login-card:hover,
+.login-card:focus-visible {
+  border-color: var(--color-brand);
+  box-shadow: var(--shadow-card);
+}
+
+.login-card .client-avatar {
+  margin-bottom: 6px;
+}
+
+.login-program {
+  color: var(--color-brand);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.login-object {
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.login-card .text-link {
+  margin-top: 8px;
+}
+
+.client-avatar {
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--color-brand);
+  font-weight: 700;
+}
+
+.client-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding: 14px 18px;
+  border: 1px solid #cfe3c8;
+  border-radius: 16px;
+  background: #f7fbf5;
+}
+
+.client-info {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.client-info strong {
+  color: var(--color-text);
+  font-size: 16px;
+}
+
+/* ── Напоминания ────────────────────────────────────── */
+
+.reminders {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 8px 0 24px;
+}
+
+.reminders-guest {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  border: 1px dashed #cfe3c8;
+  border-radius: 16px;
+  background: var(--color-surface);
+}
+
+.reminders-guest p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.reminders-guest strong {
+  color: var(--color-text);
+}
+
+.reminder-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reminder {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  height: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.reminder:hover {
+  border-color: var(--color-accent);
+}
+
+.reminder.is-urgent {
+  border-color: #f0d68a;
+  background: var(--color-warn-bg);
+}
+
+.reminder-mark {
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--color-good);
+  background: var(--color-good-bg);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.is-urgent .reminder-mark {
+  color: #fff;
+  background: var(--color-warn);
+}
+
+.reminder-text {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* ── Мой кредит ─────────────────────────────────────── */
+
+.progress {
+  display: block;
+  width: 100%;
+  height: 8px;
+  margin-top: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-soft);
+}
+
+.progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-brand);
+}
+
+.after-endline {
+  margin-top: 10px;
+}
+
+.after-tables {
+  margin-top: 16px;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+}
+
+.history-list li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.history-amount {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.history-ok {
+  color: var(--color-good);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.history-tag {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--color-good-bg);
+  color: var(--color-good);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* ── Сельская ипотека ───────────────────────────────── */
+
+.timer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  color: var(--color-brand-dark);
+  font-size: 28px;
+}
+
+.timer-date {
+  color: var(--color-muted);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.check-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.check-dots span {
+  width: 22px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-border);
+}
+
+.check-dots .is-done {
+  background: var(--color-brand);
+}
+
+.check-dots .is-next {
+  background: var(--color-lime);
+}
+
+/* ── Вычет, справки, страховка, сервисы ─────────────── */
+
+.steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding-left: 20px;
+  color: var(--color-text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.cert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cert-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.cert-option.is-active {
+  border-color: var(--color-brand);
+  background: #f7fbf5;
+}
+
+.cert-option input {
+  margin-top: 3px;
+  accent-color: var(--color-brand);
+}
+
+.cert-description {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.cert-status {
+  color: var(--color-warn);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.field-select {
+  width: 100%;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.insurance-panel {
+  max-width: 760px;
+}
+
+.service-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.service-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+  color: var(--color-muted);
+  font-size: 14px;
+  line-height: 1.45;
+  text-decoration: none;
+  transition: border-color 160ms ease;
+}
+
+.service-card strong {
+  color: var(--color-text);
+  font-size: 17px;
+}
+
+a.service-card:hover {
+  border-color: var(--color-brand);
+}
+
+.service-card.is-stub {
+  border-style: dashed;
+}
+
+.service-card .text-link {
+  margin-top: auto;
+  padding-top: 6px;
+}
+
+/* ── Телефон ────────────────────────────────────────── */
+
+@media (max-width: 620px) {
+  .after-modes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .reminders-guest {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .client-bar {
+    flex-wrap: wrap;
+  }
+
+  .timer {
+    font-size: 24px;
+  }
+}

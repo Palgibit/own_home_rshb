@@ -1,0 +1,10 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+.venv/
+
+# Копии страниц rshb.ru и брендбук — справочные материалы, не публикуем
+docs/

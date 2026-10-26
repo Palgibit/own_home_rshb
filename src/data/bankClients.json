@@ -1,0 +1,71 @@
+{
+  "anchorDate": "2026-10-27",
+  "clients": [
+    {
+      "owner": { "id": "sokolova", "name": "Анна Соколова", "contractNo": "№ 2416-СИ-0518" },
+      "program": "rural",
+      "propertyTitle": "Дом 96 м² с участком, Тамбовская обл.",
+      "propertyPrice": 7200000,
+      "loan": {
+        "principal": 5000000,
+        "ratePct": 3,
+        "months": 240,
+        "issueDate": "2024-05-08",
+        "earlyPayments": [{ "date": "2025-09-15", "amount": 300000, "mode": "term" }]
+      },
+      "insurance": {
+        "company": "РСХБ Страхование",
+        "title": "Жизнь заёмщика и дом",
+        "number": "ИП-24-118734",
+        "startDate": "2026-05-08",
+        "endDate": "2027-05-07",
+        "premium": 21400
+      }
+    },
+    {
+      "owner": { "id": "lebedev", "name": "Игорь Лебедев", "contractNo": "№ 2211-ИП-3307" },
+      "program": "market",
+      "propertyTitle": "Квартира 54 м² в новостройке, Тула",
+      "propertyPrice": 8400000,
+      "loan": {
+        "principal": 6300000,
+        "ratePct": 10.4,
+        "months": 300,
+        "issueDate": "2022-11-14",
+        "earlyPayments": [{ "date": "2024-03-20", "amount": 500000, "mode": "payment" }]
+      },
+      "insurance": {
+        "company": "РСХБ Страхование",
+        "title": "Жизнь заёмщика и квартира",
+        "number": "ИП-22-097215",
+        "startDate": "2025-11-14",
+        "endDate": "2026-11-13",
+        "premium": 34800
+      }
+    },
+    {
+      "owner": { "id": "kuznetsova", "name": "Мария Кузнецова", "contractNo": "№ 2112-СИ-1146" },
+      "program": "rural",
+      "propertyTitle": "Дом 120 м², построен по ИЖС, Краснодарский край",
+      "propertyPrice": 5600000,
+      "loan": {
+        "principal": 3800000,
+        "ratePct": 3,
+        "months": 180,
+        "issueDate": "2021-12-20",
+        "earlyPayments": [
+          { "date": "2023-06-10", "amount": 200000, "mode": "term" },
+          { "date": "2025-02-03", "amount": 400000, "mode": "term" }
+        ]
+      },
+      "insurance": {
+        "company": "РСХБ Страхование",
+        "title": "Жизнь заёмщика и дом",
+        "number": "ИП-21-054402",
+        "startDate": "2025-12-20",
+        "endDate": "2026-12-19",
+        "premium": 16900
+      }
+    }
+  ]
+}

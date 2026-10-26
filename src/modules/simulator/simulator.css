@@ -1,0 +1,426 @@
+/* Симулятор «Что, если…?» */
+
+.sim-page {
+  padding: 40px 0 56px;
+}
+
+.sim-page .back-link {
+  margin-bottom: 28px;
+}
+
+.sim-nav {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 28px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.sim-nav a {
+  flex: 0 0 auto;
+  padding: 8px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.sim-nav a:hover {
+  border-color: var(--color-accent);
+  color: var(--color-brand);
+}
+
+/* ── Раскладка: слева ввод, справа результат ───────── */
+
+.sim-grid {
+  display: grid;
+  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+  align-items: start;
+  gap: 20px;
+  scroll-margin-top: 16px;
+}
+
+.sim-side,
+.sim-main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.form-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.sim-side .form-grid .field:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
+/* ── Метрики «было → стало» ─────────────────────────── */
+
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+}
+
+.metric-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 16px 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+}
+
+.metric-label {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.metric-values {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.metric-before {
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+.metric-arrow {
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+.metric-after {
+  color: var(--color-text);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.metric-extra {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.delta {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f0f2ef;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.delta-good {
+  background: var(--color-good-bg);
+  color: var(--color-good);
+}
+
+.delta-bad {
+  background: var(--color-bad-bg);
+  color: var(--color-bad);
+}
+
+.pdn-badge {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pdn-green {
+  color: var(--color-good);
+}
+
+.pdn-yellow {
+  color: var(--color-warn);
+}
+
+.pdn-red {
+  color: var(--color-bad);
+}
+
+.text-bad {
+  color: var(--color-bad);
+}
+
+.effects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.effects-title {
+  font-weight: 700;
+}
+
+.effect-item {
+  color: var(--color-text);
+}
+
+/* Таблица сравнения (режимы досрочки, табличный вид графика) */
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.compare-table th,
+.compare-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--color-border);
+  text-align: right;
+}
+
+.compare-table th:first-child {
+  color: var(--color-muted);
+  font-weight: 600;
+  text-align: left;
+}
+
+.compare-table thead th {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.chart {
+  width: 100%;
+  min-width: 0;
+}
+
+.table-view summary {
+  color: var(--color-brand);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.table-view[open] summary {
+  margin-bottom: 8px;
+}
+
+/* ── Блоки фич ─────────────────────────────────────── */
+
+.feature {
+  margin-top: 56px;
+  scroll-margin-top: 16px;
+}
+
+.feature-head {
+  max-width: 720px;
+  margin-bottom: 18px;
+}
+
+.feature-head .eyebrow {
+  margin-bottom: 8px;
+}
+
+.feature-head h2 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: clamp(26px, 3vw, 34px);
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.feature-lead {
+  margin: 10px 0 0;
+  color: var(--color-muted);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.feature-lead strong {
+  color: var(--color-text);
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.big-answer {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+}
+
+/* Досрочка или вклад */
+.verdict-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.verdict-grid-single {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 520px;
+}
+
+.verdict-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+}
+
+.verdict-title {
+  margin: 0;
+  font-size: 15px;
+}
+
+.verdict-rows,
+.home-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+
+.verdict-rows div,
+.home-rows div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.verdict-rows dt,
+.home-rows dt {
+  color: var(--color-muted);
+}
+
+.verdict-rows dd,
+.home-rows dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.verdict-plaque {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.verdict-deposit {
+  background: var(--color-good-bg);
+  color: var(--color-brand-dark);
+}
+
+.verdict-early {
+  background: var(--color-warn-bg);
+  color: #5c4300;
+}
+
+/* Город или село */
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.home-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+}
+
+.home-card:last-child {
+  border-color: #cfe3c8;
+  background: #f7fbf5;
+}
+
+.home-title {
+  margin: 0;
+  font-size: 18px;
+}
+
+.home-subtitle {
+  margin: -6px 0 4px;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.home-key {
+  font-size: 17px;
+}
+
+/* ── Адаптивность ───────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .sim-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 620px) {
+  .sim-page {
+    padding-top: 28px;
+  }
+
+  .form-grid,
+  .form-grid-3,
+  .feature-grid,
+  .verdict-grid,
+  .home-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .metric-after {
+    font-size: 17px;
+  }
+
+  .big-answer {
+    font-size: 17px;
+  }
+
+  .feature {
+    margin-top: 40px;
+  }
+}
