@@ -64,6 +64,37 @@ export function AfterTab({ draft, edit }: { draft: AppConfig; edit: Edit }) {
       </section>
 
       <section className="panel">
+        <h2 className="panel-title">Справка по налоговому вычету</h2>
+        <p className="scenario-description">
+          Вопросы и ответы над калькулятором вычета. Отвечайте коротко, в 1–3 предложения.
+        </p>
+        {a.taxFaq.map((f, i) => (
+          <div key={i} className="admin-param">
+            <TextField label={`Вопрос ${i + 1}`} value={f.q} onChange={(v) => setAfter((x) => void (x.taxFaq[i].q = v))} />
+            <TextField label="Ответ" rows={3} value={f.a} hint={hint} onChange={(v) => setAfter((x) => void (x.taxFaq[i].a = v))} />
+            <button
+              type="button"
+              className="admin-remove"
+              title="Удалить вопрос"
+              aria-label={`Удалить вопрос ${f.q}`}
+              onClick={() => setAfter((x) => void x.taxFaq.splice(i, 1))}
+            >
+              ×
+            </button>
+          </div>
+        ))}
+        <div>
+          <button
+            type="button"
+            className="button button-secondary"
+            onClick={() => setAfter((x) => void x.taxFaq.push({ q: "Новый вопрос?", a: "Короткий ответ." }))}
+          >
+            + Вопрос
+          </button>
+        </div>
+      </section>
+
+      <section className="panel">
         <h2 className="panel-title">Сервисы экосистемы</h2>
         <p className="scenario-description">
           На них ведут шаги навигатора и раздел «Обустройство». Пустая ссылка — сервис показан без перехода.

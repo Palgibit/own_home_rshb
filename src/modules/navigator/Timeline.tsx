@@ -1,6 +1,5 @@
 // Таймлайн маршрута: этапы и шаги с отметками «сделано».
-// При смене ответов новые шаги плавно появляются, ушедшие — плавно исчезают,
-// а сверху видно, сколько шагов добавилось и убралось.
+// При смене ответов новые шаги плавно появляются, ушедшие — плавно исчезают.
 
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
@@ -20,24 +19,18 @@ type Props = {
   services: ServiceDef[];
 };
 
-type Change = { added: RouteStep[]; removed: RouteStep[] };
-
 // Держит ушедшие шаги на экране, пока проигрывается анимация исчезновения
 function useLeavingSteps(route: RouteStep[]) {
   const prev = useRef(route);
   const timers = useRef<number[]>([]);
   const [leaving, setLeaving] = useState<RouteStep[]>([]);
-  const [change, setChange] = useState<Change | null>(null);
 
   useEffect(() => {
     const before = prev.current;
     prev.current = route;
     if (before === route) return;
     const nowIds = new Set(route.map((r) => r.step.id));
-    const beforeIds = new Set(before.map((r) => r.step.id));
     const removed = before.filter((r) => !nowIds.has(r.step.id));
-    const added = route.filter((r) => !beforeIds.has(r.step.id));
-    setChange(added.length || removed.length ? { added, removed } : null);
     if (!removed.length) {
       setLeaving((list) => list.filter((r) => !nowIds.has(r.step.id)));
       return;
@@ -48,13 +41,13 @@ function useLeavingSteps(route: RouteStep[]) {
   }, [route]);
 
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
-  return { leaving, change };
+  return leaving;
 }
 
 const stepsWord = (n: number) => `${n} ${plural(n, ["шаг", "шага", "шагов"])}`;
 
 export function Timeline({ stages, stepIds, route, done, onToggle, services }: Props) {
-  const { leaving, change } = useLeavingSteps(route);
+  const leaving = useLeavingSteps(route);
   const doneCount = route.filter((r) => done.includes(r.step.id)).length;
   const progress = route.length ? Math.round((doneCount / route.length) * 100) : 0;
 
@@ -81,13 +74,6 @@ export function Timeline({ stages, stepIds, route, done, onToggle, services }: P
         >
           <span style={{ width: `${progress}%` }} />
         </div>
-        {change && (
-          <p className="nav-change" role="status">
-            Маршрут изменился:
-            {change.added.length > 0 && <span className="delta delta-good">+{stepsWord(change.added.length)}</span>}
-            {change.removed.length > 0 && <span className="delta delta-bad">−{stepsWord(change.removed.length)}</span>}
-          </p>
-        )}
       </div>
 
       <ol className="timeline">

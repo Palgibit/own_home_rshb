@@ -2,10 +2,11 @@
 // При сельской ипотеке под 3% вклад обычно выгоднее досрочки.
 // Если льготу потерять (ставка вырастет до lossRate), вывод разворачивается —
 // поэтому для сельской ипотеки показываем обе колонки рядом.
+// Под каждым выводом — порог: при какой ставке вклада выгоды сравняются.
 
 import { useState } from "react";
 import type { Loan } from "../../core/annuity";
-import { depositVsEarly, type DepositVsEarly } from "../../core/features";
+import { breakEvenDepositRate, depositVsEarly, type DepositVsEarly } from "../../core/features";
 import { useConfig } from "../../config/ConfigContext";
 import type { LoanProgram } from "../../config/schema";
 import { ExplainableNumber } from "../../ui/ExplainableNumber";
@@ -18,7 +19,8 @@ type Props = {
   onOpenScenario: (id: string) => void;
 };
 
-function Verdict({ title, r }: { title: string; r: DepositVsEarly }) {
+function Verdict({ title, r, amount, depositTaxPct }: { title: string; r: DepositVsEarly; amount: number; depositTaxPct: number }) {
+  const threshold = breakEvenDepositRate(r, amount, depositTaxPct);
   return (
     <article className="verdict-card">
       <h4 className="verdict-title">{title}</h4>
@@ -39,6 +41,11 @@ function Verdict({ title, r }: { title: string; r: DepositVsEarly }) {
       <p className={`verdict-plaque verdict-${r.winner}`}>
         {r.winner === "deposit" ? "Выгоднее вклад" : "Выгоднее досрочка"} на {formatRub(r.difference)}
       </p>
+      {Number.isFinite(threshold.value) && (
+        <p className="verdict-threshold">
+          Вклад выгоднее, если его ставка выше <ExplainableNumber value={threshold} format="pct" />
+        </p>
+      )}
     </article>
   );
 }
@@ -47,10 +54,15 @@ export function DepositVsEarlyBlock({ loan, program, onOpenScenario }: Props) {
   const { config, globals } = useConfig();
   const sim = config.simulator;
   const [amount, setAmount] = useState(sim.compareAmount);
+  // Месяц от выдачи кредита, когда появились деньги. Чем позже — тем меньше
+  // остаток долга, тем меньше процентов «съедает» досрочка и тем меньше экономия
   const [month, setMonth] = useState(sim.compareMonth);
+  // Горизонт: сколько месяцев деньги лежат на вкладе и за сколько месяцев
+  // считаем экономию на процентах. Сравнивать честно можно только за одинаковый срок
   const [horizon, setHorizon] = useState(sim.compareHorizonMonths);
+  // Ставку вклада пользователь двигает сам: по умолчанию — условная из конфига
+  const [depositRatePct, setDepositRatePct] = useState(globals.depositRate ?? 0);
 
-  const depositRatePct = globals.depositRate ?? 0;
   const depositTaxPct = globals.depositTax ?? 0;
   const lossRate = globals.lossRate ?? loan.ratePct;
   const common = { loan, amount, month, horizon, depositRatePct, depositTaxPct };
@@ -74,19 +86,55 @@ export function DepositVsEarlyBlock({ loan, program, onOpenScenario }: Props) {
       </div>
 
       <div className="panel">
-        <div className="form-grid form-grid-3">
+        <div className="form-grid">
           <NumberField label="Свободная сумма" unit="₽" value={amount} min={0} max={20_000_000} step={10_000} slider onChange={setAmount} />
-          <NumberField label="Через сколько месяцев" unit="мес" value={month} min={1} max={Math.max(1, loan.months - 1)} slider onChange={setMonth} />
-          <NumberField label="Горизонт сравнения" unit="мес" value={horizon} min={6} max={240} step={6} slider onChange={setHorizon} />
+          <NumberField
+            label="Ставка вклада"
+            unit="%"
+            value={depositRatePct}
+            min={0}
+            max={25}
+            step={0.1}
+            slider
+            onChange={setDepositRatePct}
+            hint={`${depositHint ?? ""} Налог на проценты — ${formatPct(depositTaxPct)}.`.trim()}
+          />
+          <NumberField
+            label="Когда появятся деньги"
+            unit="мес"
+            value={month}
+            min={1}
+            max={Math.max(1, loan.months - 1)}
+            slider
+            onChange={setMonth}
+            hint="Через сколько месяцев после выдачи кредита. Чем позже, тем меньше остаток долга и тем меньше экономит досрочка."
+          />
+          <NumberField
+            label="Сравниваем за"
+            unit="мес"
+            value={horizon}
+            min={6}
+            max={240}
+            step={6}
+            slider
+            onChange={setHorizon}
+            hint="Столько деньги лежат на вкладе — и за столько же считаем экономию на процентах."
+          />
         </div>
-        <p className="field-hint">
-          Ставка вклада {formatPct(depositRatePct)}, налог на проценты {formatPct(depositTaxPct)}. {depositHint}
-          {now.horizon < horizon && ` Кредит с досрочкой закончится раньше — сравниваем за ${formatMonths(now.horizon)}.`}
-        </p>
+        {now.horizon < horizon && (
+          <p className="field-hint">Кредит с досрочкой закончится раньше — сравниваем за {formatMonths(now.horizon)}.</p>
+        )}
 
         <div className={`verdict-grid${lost ? "" : " verdict-grid-single"}`}>
-          <Verdict title={`Сейчас: ставка ${formatPct(loan.ratePct)}`} r={now} />
-          {lost && <Verdict title={`Если потеряете льготу: ставка ${formatPct(lossRate)}`} r={lost} />}
+          <Verdict title={`Сейчас: ставка ${formatPct(loan.ratePct)}`} r={now} amount={amount} depositTaxPct={depositTaxPct} />
+          {lost && (
+            <Verdict
+              title={`Если потеряете льготу: ставка ${formatPct(lossRate)}`}
+              r={lost}
+              amount={amount}
+              depositTaxPct={depositTaxPct}
+            />
+          )}
         </div>
 
         {flipped && (

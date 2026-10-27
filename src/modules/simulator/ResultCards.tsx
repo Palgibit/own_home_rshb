@@ -1,20 +1,21 @@
-// «Было → стало» по метрикам: платёж, срок, переплата, свободный бюджет, ПДН.
+// «Было → стало»: в центре внимания — платёж по ипотеке (крупная карточка),
+// ниже — срок, переплата и свободный бюджет с бейджем долговой нагрузки (ПДН).
+// Подробности (два режима досрочки, эффекты сценария) свёрнуты.
 // Каждое число кликабельно — раскрывает формулу и подстановки.
 
 import type { EarlyMode } from "../../core/annuity";
+import type { Explained } from "../../core/explain";
 import { EFFECTS, pdnLevel, type EffectKey, type Metrics, type ScenarioResult } from "../../core/scenarios";
 import { useConfig } from "../../config/ConfigContext";
 import { ExplainableNumber } from "../../ui/ExplainableNumber";
 import { formatBy, formatMonths, type Format } from "../../ui/format";
 
-type MetricKey = "payment" | "months" | "overpayment" | "budget" | "pdn";
+type Better = "lower" | "higher";
 
-const METRICS: { key: MetricKey; label: string; format: Format; better: "lower" | "higher" }[] = [
-  { key: "payment", label: "Платёж по ипотеке", format: "rub", better: "lower" },
+const SMALL_METRICS: { key: "months" | "overpayment" | "budget"; label: string; format: Format; better: Better }[] = [
   { key: "months", label: "Срок", format: "months", better: "lower" },
   { key: "overpayment", label: "Переплата", format: "rub", better: "lower" },
   { key: "budget", label: "Свободный бюджет", format: "rub", better: "higher" },
-  { key: "pdn", label: "Долговая нагрузка", format: "pct", better: "lower" },
 ];
 
 const PDN_TEXT = { green: "комфортно", yellow: "напряжённо", red: "опасно" } as const;
@@ -26,7 +27,7 @@ const EFFECT_FORMAT: Partial<Record<EffectKey, Format>> = {
   newRate: "pct",
 };
 
-function Delta({ before, after, format, better }: { before: number; after: number; format: Format; better: "lower" | "higher" }) {
+function Delta({ before, after, format, better }: { before: number; after: number; format: Format; better: Better }) {
   const diff = after - before;
   const tiny = format === "pct" ? 0.05 : 0.5;
   if (!Number.isFinite(diff) || Math.abs(diff) < tiny) return <span className="delta">без изменений</span>;
@@ -37,6 +38,22 @@ function Delta({ before, after, format, better }: { before: number; after: numbe
       {diff > 0 ? "+" : "−"}
       {abs}
     </span>
+  );
+}
+
+function BeforeAfter({ before, after, format }: { before: Explained; after: Explained; format: Format }) {
+  return (
+    <div className="metric-values">
+      <span className="metric-before">
+        <ExplainableNumber value={before} format={format} />
+      </span>
+      <span className="metric-arrow" aria-label="стало">
+        →
+      </span>
+      <span className="metric-after">
+        <ExplainableNumber value={after} format={format} />
+      </span>
+    </div>
   );
 }
 
@@ -57,30 +74,27 @@ export function ResultCards({ result, earlyMode }: Props) {
 
   return (
     <div className="results">
+      <article className="metric-card metric-main">
+        <h3 className="metric-label">Платёж по ипотеке в месяц</h3>
+        <BeforeAfter before={before.payment} after={after.payment} format="rub" />
+        <Delta before={before.payment.value} after={after.payment.value} format="rub" better="lower" />
+        {effects.extraPayment && (
+          <span className="metric-extra">
+            + другой кредит <ExplainableNumber value={effects.extraPayment} /> в месяц
+          </span>
+        )}
+      </article>
+
       <div className="metric-grid">
-        {METRICS.map((m) => (
+        {SMALL_METRICS.map((m) => (
           <article className="metric-card" key={m.key}>
             <h3 className="metric-label">{m.label}</h3>
-            <div className="metric-values">
-              <span className="metric-before">
-                <ExplainableNumber value={before[m.key]} format={m.format} />
-              </span>
-              <span className="metric-arrow" aria-label="стало">
-                →
-              </span>
-              <span className="metric-after">
-                <ExplainableNumber value={after[m.key]} format={m.format} />
-              </span>
-            </div>
+            <BeforeAfter before={before[m.key]} after={after[m.key]} format={m.format} />
             <Delta before={before[m.key].value} after={after[m.key].value} format={m.format} better={m.better} />
-            {m.key === "pdn" && (
+            {m.key === "budget" && (
               <span className={`pdn-badge pdn-${level}`}>
-                <span aria-hidden="true">●</span> {PDN_TEXT[level]}
-              </span>
-            )}
-            {m.key === "payment" && effects.extraPayment && (
-              <span className="metric-extra">
-                + другой кредит <ExplainableNumber value={effects.extraPayment} /> в месяц
+                <span aria-hidden="true">●</span> Нагрузка <ExplainableNumber value={after.pdn} format="pct" /> —{" "}
+                {PDN_TEXT[level]}
               </span>
             )}
           </article>
@@ -88,8 +102,8 @@ export function ResultCards({ result, earlyMode }: Props) {
       </div>
 
       {byMode && (
-        <div className="panel mode-compare">
-          <h3 className="panel-subtitle">Два режима досрочки</h3>
+        <details className="table-view panel-details">
+          <summary>Сравнить два режима досрочки</summary>
           <table className="compare-table">
             <thead>
               <tr>
@@ -122,18 +136,20 @@ export function ResultCards({ result, earlyMode }: Props) {
             уменьшение платежа освобождает{" "}
             <strong>{formatBy("rub", byMode.term.payment.value - byMode.payment.payment.value)}</strong> в месяц.
           </p>
-        </div>
+        </details>
       )}
 
       {Object.keys(effects).length > 0 && (
-        <div className="effects">
-          <span className="effects-title">Как сценарий меняет расчёт:</span>
-          {(Object.entries(effects) as [EffectKey, NonNullable<ScenarioResult["effects"][EffectKey]>][]).map(([key, e]) => (
-            <span className="effect-item" key={key}>
-              {EFFECTS[key]}: <ExplainableNumber value={e} format={EFFECT_FORMAT[key] ?? "rub"} />
-            </span>
-          ))}
-        </div>
+        <details className="table-view panel-details">
+          <summary>Как сценарий меняет расчёт</summary>
+          <div className="effects">
+            {(Object.entries(effects) as [EffectKey, NonNullable<ScenarioResult["effects"][EffectKey]>][]).map(([key, e]) => (
+              <span className="effect-item" key={key}>
+                {EFFECTS[key]}: <ExplainableNumber value={e} format={EFFECT_FORMAT[key] ?? "rub"} />
+              </span>
+            ))}
+          </div>
+        </details>
       )}
     </div>
   );

@@ -127,6 +127,54 @@
   font-size: 12px;
 }
 
+/* Главная карточка: платёж по ипотеке — крупно, на всю ширину */
+.metric-main {
+  gap: 10px;
+  padding: 22px 24px;
+  border-color: #cfe3c8;
+  background: #f7fbf5;
+}
+
+.metric-main .metric-label {
+  font-size: 14px;
+}
+
+.metric-main .metric-before {
+  font-size: 18px;
+}
+
+.metric-main .metric-arrow {
+  font-size: 18px;
+}
+
+.metric-main .metric-after {
+  color: var(--color-brand-dark);
+  font-size: clamp(30px, 4vw, 40px);
+  letter-spacing: -0.03em;
+}
+
+.metric-main .metric-extra {
+  font-size: 13px;
+}
+
+/* Свёрнутый блок с подробностями под карточками */
+.panel-details {
+  padding: 14px 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+}
+
+.panel-details[open] {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.panel-details[open] summary {
+  margin-bottom: 0;
+}
+
 .delta {
   padding: 2px 8px;
   border-radius: 999px;
@@ -351,6 +399,109 @@
   color: #5c4300;
 }
 
+.verdict-threshold {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.verdict-threshold .explain {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+/* Ещё расчёты: свёрнутые блоки «чашка кофе» и «реальный платёж» */
+.more-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.more-item {
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.more-item > summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 18px 52px 18px 22px;
+  position: relative;
+  list-style: none;
+  cursor: pointer;
+}
+
+.more-item > summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Плюс справа, в открытом виде — минус */
+.more-item > summary::after {
+  position: absolute;
+  top: 50%;
+  right: 22px;
+  color: var(--color-brand);
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1;
+  content: "+";
+  transform: translateY(-50%);
+}
+
+.more-item[open] > summary::after {
+  content: "−";
+}
+
+.more-item > summary:focus-visible {
+  border-radius: 20px;
+  outline: 3px solid var(--color-lime);
+  outline-offset: 2px;
+}
+
+.more-title {
+  color: var(--color-text);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.more-hint {
+  color: var(--color-muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+/* Внутри свёрнутого блока заголовок фичи уже есть в строке-заголовке:
+   прячем его визуально, но оставляем для экранных дикторов */
+.more-item .feature {
+  margin: 0;
+  padding: 0 22px 22px;
+}
+
+.more-item .feature-head {
+  margin-bottom: 14px;
+}
+
+.more-item .feature-head .eyebrow,
+.more-item .feature-head h2 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.more-item .feature-lead {
+  margin-top: 0;
+}
+
+.more-item .panel {
+  box-shadow: none;
+}
+
 /* Город или село */
 .home-grid {
   display: grid;
@@ -412,8 +563,21 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  /* Нечётная последняя карточка (свободный бюджет) — на всю ширину */
+  .metric-grid .metric-card:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
   .metric-after {
     font-size: 17px;
+  }
+
+  .metric-main {
+    padding: 18px;
+  }
+
+  .metric-main .metric-after {
+    font-size: 30px;
   }
 
   .big-answer {
@@ -422,5 +586,17 @@
 
   .feature {
     margin-top: 40px;
+  }
+
+  .more-item > summary {
+    padding: 16px 44px 16px 16px;
+  }
+
+  .more-item > summary::after {
+    right: 16px;
+  }
+
+  .more-item .feature {
+    padding: 0 16px 16px;
   }
 }

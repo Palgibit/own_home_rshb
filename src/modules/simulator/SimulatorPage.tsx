@@ -22,9 +22,8 @@ import "./simulator.css";
 const SECTIONS = [
   ["scenarios", "Сценарии"],
   ["deposit", "Досрочка или вклад"],
-  ["coffee", "Чашка кофе"],
-  ["real", "Реальный платёж"],
   ["city-village", "Город или село"],
+  ["more", "Ещё расчёты"],
 ] as const;
 
 export function SimulatorPage() {
@@ -134,7 +133,7 @@ export function SimulatorPage() {
         </div>
 
         <div className="sim-main">
-          {!scenario && <p className="note note-warn">Нет доступных сценариев. Добавьте их в админке.</p>}
+          {!scenario && <p className="note note-warn">Нет доступных сценариев. Добавьте их в панели администратора.</p>}
           {computed && "error" in computed && (
             <p className="note note-warn">Не получилось посчитать сценарий: {computed.error}</p>
           )}
@@ -149,9 +148,32 @@ export function SimulatorPage() {
       </section>
 
       <DepositVsEarlyBlock loan={loan} program={base.program} onOpenScenario={openScenario} />
-      <CoffeeBlock loan={loan} />
-      {result && <RealPaymentBlock payment={result.before.payment.value} years={Math.ceil(loan.months / 12)} />}
       <CityVsVillageBlock income={base.income} expenses={base.expenses} months={loan.months} />
+
+      {/* Второстепенные расчёты свёрнуты: открываются по клику, чтобы не спорить за внимание с главными */}
+      <section className="feature" id="more" aria-labelledby="more-heading">
+        <div className="feature-head">
+          <h2 id="more-heading">Ещё расчёты</h2>
+        </div>
+        <div className="more-list">
+          <details className="more-item">
+            <summary>
+              <span className="more-title">Доплачивать понемногу каждый месяц</span>
+              <span className="more-hint">Насколько раньше закроете кредит, если добавлять к платежу пару тысяч</span>
+            </summary>
+            <CoffeeBlock loan={loan} />
+          </details>
+          {result && (
+            <details className="more-item">
+              <summary>
+                <span className="more-title">Сколько на самом деле стоит платёж</span>
+                <span className="more-hint">Платёж по договору не меняется, а деньги дешевеют — сколько он весит в сегодняшних рублях</span>
+              </summary>
+              <RealPaymentBlock payment={result.before.payment.value} years={Math.ceil(loan.months / 12)} />
+            </details>
+          )}
+        </div>
+      </section>
     </main>
   );
 }

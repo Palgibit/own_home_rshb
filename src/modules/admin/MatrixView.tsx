@@ -1,19 +1,15 @@
 // Матрица «шаг × сценарий» — прямой ответ на требование задачи 2:
 // видно, какие шаги есть в каждом сценарии и где рекомендация особая.
 // Строится тем же ядром, что и маршрут, поэтому всегда совпадает с ним.
+// Живёт в панели администратора: клиенту она не нужна, а админу помогает
+// проверить, как правка шага меняет маршруты. Её же вставляем в PDF.
 
 import { Fragment, useMemo } from "react";
 import { buildMatrix, buildRoute, type NavigatorDef } from "../../core/navigator";
 import { plural } from "../../ui/format";
 import { fillTemplate, useParamFormatter } from "../../ui/TemplateText";
 
-type Props = {
-  nav: NavigatorDef;
-  currentPresetId?: string;
-  onOpenPreset: (presetId: string) => void;
-};
-
-export function MatrixView({ nav, currentPresetId, onOpenPreset }: Props) {
+export function MatrixView({ nav }: { nav: NavigatorDef }) {
   const matrix = useMemo(() => buildMatrix(nav), [nav]);
   const counts = useMemo(() => nav.presets.map((p) => buildRoute(nav, p.answers).length), [nav]);
   const format = useParamFormatter();
@@ -23,11 +19,11 @@ export function MatrixView({ nav, currentPresetId, onOpenPreset }: Props) {
     <section className="panel matrix-panel" aria-labelledby="matrix-heading">
       <div>
         <h2 id="matrix-heading" className="panel-title">
-          Как маршрут меняется по сценариям
+          Матрица «шаг × сценарий»
         </h2>
         <p className="scenario-description">
-          Строки — шаги, столбцы — типовые сценарии. Наведите на значок, чтобы прочитать рекомендацию; нажмите на
-          сценарий, чтобы открыть его маршрут.
+          Строки — шаги, столбцы — типовые сценарии. Наведите на значок, чтобы прочитать рекомендацию. Матрица
+          строится по черновику — видно, как правка шага меняет маршруты ещё до сохранения.
         </p>
       </div>
 
@@ -51,10 +47,8 @@ export function MatrixView({ nav, currentPresetId, onOpenPreset }: Props) {
                 Шаг
               </th>
               {nav.presets.map((p, i) => (
-                <th key={p.id} scope="col" className={p.id === currentPresetId ? "is-current" : undefined}>
-                  <button type="button" className="matrix-preset" onClick={() => onOpenPreset(p.id)}>
-                    {p.title}
-                  </button>
+                <th key={p.id} scope="col">
+                  <span className="matrix-preset">{p.title}</span>
                   <span className="matrix-count">
                     {counts[i]} {plural(counts[i], ["шаг", "шага", "шагов"])}
                   </span>
@@ -76,17 +70,16 @@ export function MatrixView({ nav, currentPresetId, onOpenPreset }: Props) {
                       <th scope="row">{row.step.title}</th>
                       {row.cells.map((c, i) => {
                         const preset = nav.presets[i];
-                        const current = preset.id === currentPresetId ? " is-current" : "";
                         if (c.cell === "none") {
                           return (
-                            <td key={preset.id} className={current}>
+                            <td key={preset.id}>
                               <span className="matrix-mark" aria-label="нет">·</span>
                             </td>
                           );
                         }
                         const text = fillTemplate(c.text ?? "", format);
                         return (
-                          <td key={preset.id} className={current}>
+                          <td key={preset.id}>
                             <span
                               className={`matrix-mark ${c.cell === "special" ? "is-special" : "is-shown"}`}
                               title={text}

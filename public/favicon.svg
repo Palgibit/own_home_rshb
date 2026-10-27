@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Домик в цветах РСХБ: зелёная плашка, жёлтая крыша, белые стены -->
+  <rect width="32" height="32" rx="7" fill="#27722f"/>
+  <path d="M16 4.5 29 16H3z" fill="#fec000" stroke="#fec000" stroke-width="1.5" stroke-linejoin="round"/>
+  <path d="M7.5 15.5h17V27h-17z" fill="#fff"/>
+  <path d="M13.5 19.5h5V27h-5z" fill="#27722f"/>
+</svg>

@@ -134,6 +134,10 @@ a:focus-visible {
   white-space: nowrap;
 }
 
+.admin-link-short {
+  display: none;
+}
+
 .hero {
   position: relative;
   display: grid;
@@ -601,8 +605,17 @@ a:focus-visible {
   }
 
   .admin-link {
-    padding: 8px 12px;
-    font-size: 13px;
+    padding: 6px 11px;
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  .admin-link-full {
+    display: none;
+  }
+
+  .admin-link-short {
+    display: inline;
   }
 
   .hero {

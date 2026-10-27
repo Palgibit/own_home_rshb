@@ -1,7 +1,7 @@
 // Модуль 2. Навигатор «Путь к своему дому».
 // Страница хранит ответы и отметки «сделано»; маршрут собирает ядро (core/navigator).
-// Ссылки: #/navigator?preset=rural-construction — открыть типовой сценарий,
-//         #/navigator?view=matrix — сразу показать матрицу «шаг × сценарий».
+// Ссылка #/navigator?preset=rural-construction открывает типовой сценарий.
+// Матрица «шаг × сценарий» — в панели администратора, вкладка «Навигатор».
 
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -13,7 +13,7 @@ import {
   type Answers,
 } from "../../core/navigator";
 import { useConfig } from "../../config/ConfigContext";
-import { MatrixView } from "./MatrixView";
+import { PresetsBar } from "./PresetsBar";
 import { QuestionsPanel } from "./QuestionsPanel";
 import { Timeline } from "./Timeline";
 import "./navigator.css";
@@ -43,7 +43,6 @@ export function NavigatorPage() {
   const { config } = useConfig();
   const nav = config.navigator;
   const [searchParams, setSearchParams] = useSearchParams();
-  const view = searchParams.get("view") === "matrix" ? "matrix" : "route";
 
   // Старт: типовой сценарий из ссылки → сохранённые ответы → первый типовой сценарий.
   // Ответы всегда пропускаем через normalizeAnswers: конфиг мог измениться.
@@ -87,7 +86,6 @@ export function NavigatorPage() {
     const preset = nav.presets.find((p) => p.id === id);
     if (!preset) return;
     applyAnswers(preset.answers);
-    setQuery({ preset: null, view: null });
   };
 
   const toggleDone = (id: string) =>
@@ -101,45 +99,15 @@ export function NavigatorPage() {
       <p className="eyebrow">Ваш маршрут</p>
       <h1 className="page-title">Путь к своему дому</h1>
       <p className="page-lead">
-        Ответьте на пару вопросов — соберём маршрут от выбора объекта до новоселья. Поменяйте ответ, и увидите, какие
-        шаги появятся, а какие исчезнут.
+        Выберите похожий сценарий или ответьте на пару вопросов — соберём маршрут от выбора объекта до новоселья.
       </p>
 
-      <div className="segmented nav-tabs" role="tablist" aria-label="Вид">
-        {(
-          [
-            ["route", "Мой маршрут"],
-            ["matrix", "Шаги × сценарии"],
-          ] as const
-        ).map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={view === id}
-            className={`segmented-item${view === id ? " is-active" : ""}`}
-            onClick={() => setQuery({ view: id === "matrix" ? "matrix" : null })}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <PresetsBar nav={nav} currentPresetId={currentPreset?.id} onPreset={choosePreset} />
 
-      {view === "route" ? (
-        <section className="nav-grid">
-          <QuestionsPanel
-            nav={nav}
-            answers={answers}
-            currentPresetId={currentPreset?.id}
-            adjusted={adjusted}
-            onAnswer={(q, o) => applyAnswers({ ...answers, [q]: o })}
-            onPreset={choosePreset}
-          />
-          <Timeline stages={nav.stages} stepIds={nav.steps.map((s) => s.id)} route={route} done={done} onToggle={toggleDone} services={config.services} />
-        </section>
-      ) : (
-        <MatrixView nav={nav} currentPresetId={currentPreset?.id} onOpenPreset={choosePreset} />
-      )}
+      <section className="nav-grid">
+        <QuestionsPanel nav={nav} answers={answers} adjusted={adjusted} onAnswer={(q, o) => applyAnswers({ ...answers, [q]: o })} />
+        <Timeline stages={nav.stages} stepIds={nav.steps.map((s) => s.id)} route={route} done={done} onToggle={toggleDone} services={config.services} />
+      </section>
     </main>
   );
 }

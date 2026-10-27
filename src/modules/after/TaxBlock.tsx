@@ -1,5 +1,6 @@
-// Налоговый вычет: имущественный и по процентам, за сколько лет вернёте,
-// проценты по годам и короткая инструкция (шаги — в конфиге).
+// Налоговый вычет: короткая справка (вопросы-ответы), калькулятор — имущественный
+// и по процентам, за сколько лет вернёте, проценты по годам — и инструкция.
+// Тексты справки и шагов — в конфиге.
 
 import { useState } from "react";
 import { deductionYears, interestDeduction, propertyDeduction } from "../../core/features";
@@ -34,6 +35,31 @@ export function TaxBlock({ data, status }: { data: LoanData; status: LoanStatus 
           получить оба.
         </p>
       </div>
+
+      {config.after.taxFaq.length > 0 && (
+        <details className="table-view panel-details tax-faq">
+          <summary>Что такое налоговый вычет — коротко</summary>
+          <dl className="faq-list">
+            {config.after.taxFaq.map((f, i) => (
+              <div key={i}>
+                <dt>
+                  <TemplateText text={f.q} />
+                </dt>
+                <dd>
+                  <TemplateText text={f.a} />
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <p className="field-hint">
+            Правила меняются — проверяйте на{" "}
+            <a className="text-link" href="https://www.nalog.gov.ru/" target="_blank" rel="noreferrer">
+              сайте ФНС
+            </a>
+            .
+          </p>
+        </details>
+      )}
 
       <div className="feature-grid">
         <div className="panel">

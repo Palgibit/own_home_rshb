@@ -70,6 +70,25 @@ export function depositVsEarly(input: DepositVsEarlyInput): DepositVsEarly {
   };
 }
 
+// Ставка вклада, при которой вклад и досрочка дают одинаково.
+// Экономия от досрочки E от ставки вклада не зависит, а доход по вкладу
+// растёт вместе со ставкой. Приравниваем X·((1 + d/12)^h − 1)·(1 − налог) = E
+// и выражаем d:  d = 12 · ((1 + E / (X·(1 − налог)))^(1/h) − 1).
+// Выше этой ставки выгоднее вклад, ниже — досрочка.
+export function breakEvenDepositRate(r: DepositVsEarly, amount: number, depositTaxPct: number): Explained {
+  const E = r.early.value;
+  const h = r.horizon;
+  const kept = 1 - depositTaxPct / 100; // какая доля процентов остаётся после налога
+  const value =
+    h > 0 && amount > 0 && kept > 0 ? 12 * (Math.pow(1 + Math.max(0, E) / (amount * kept), 1 / h) - 1) * 100 : NaN;
+  return explained("breakEvenDeposit", value, {
+    E: inp(E, "Экономия от досрочки за горизонт, ₽"),
+    X: inp(amount, "Сумма, ₽"),
+    h: inp(h, "Горизонт, мес"),
+    tax: inp(depositTaxPct, "Налог на проценты, %"),
+  });
+}
+
 // ── Фича 3. Досрочка «чашкой кофе» ───────────────────────────────
 
 export type CoffeeResult = {

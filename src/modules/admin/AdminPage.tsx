@@ -1,4 +1,4 @@
-// Админка. Админ правит черновик — копию конфига. Черновик проверяется при каждом
+// Панель администратора. Админ правит черновик — копию конфига. Черновик проверяется при каждом
 // изменении (validateConfig); «Сохранить» доступно, только когда ошибок нет.
 // После сохранения конфиг уходит в localStorage, и все модули сразу перерисовываются.
 // Вкладка — в адресе: #/admin?tab=scenarios.
@@ -66,8 +66,8 @@ export function AdminPage() {
       <Link className="back-link" to="/">
         <span aria-hidden="true">←</span> На главную
       </Link>
-      <p className="eyebrow">Администрирование</p>
-      <h1 className="page-title">Настройки</h1>
+      <p className="eyebrow">Настройки сервиса</p>
+      <h1 className="page-title">Панель администратора</h1>
       {authed ? <AdminEditor onLogout={logout} /> : <LoginForm onLogin={login} />}
     </main>
   );
@@ -188,7 +188,7 @@ function AdminEditor({ onLogout }: { onLogout: () => void }) {
           сохранения.
         </p>
         <button type="button" className="admin-link-button" onClick={onLogout}>
-          Выйти из админки
+          Выйти
         </button>
       </div>
 

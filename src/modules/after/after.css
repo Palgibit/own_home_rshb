@@ -345,6 +345,32 @@
 
 /* ── Вычет, справки, страховка, сервисы ─────────────── */
 
+/* Справка по налоговому вычету */
+.tax-faq {
+  margin-bottom: 16px;
+}
+
+.faq-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px 24px;
+  margin: 0;
+}
+
+.faq-list dt {
+  margin-bottom: 4px;
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.faq-list dd {
+  margin: 0;
+  color: #4c5a4f;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 .steps-list {
   display: flex;
   flex-direction: column;

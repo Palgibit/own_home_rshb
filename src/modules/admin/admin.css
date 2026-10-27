@@ -415,3 +415,203 @@
     flex: 1;
   }
 }
+
+/* ── Форма шагов навигатора ───────────────────────── */
+
+.admin-step-list {
+  display: flex;
+  max-height: 60vh;
+  overflow-y: auto;
+  flex-direction: column;
+  margin-top: -14px;
+}
+
+.admin-step-list .admin-vars-title:first-child {
+  margin-top: 14px;
+}
+
+.admin-step-item {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 10px;
+  color: var(--color-text);
+  background: none;
+  font-size: 13px;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-step-item:hover {
+  background: var(--color-soft);
+}
+
+.admin-step-item.is-active {
+  color: #fff;
+  background: var(--color-brand);
+}
+
+.admin-condition {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-advanced > summary {
+  font-weight: 700;
+}
+
+.admin-advanced[open] .field {
+  margin-top: 12px;
+}
+
+.admin-preview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  color: var(--color-muted);
+  font-size: 14px;
+  list-style: none;
+}
+
+.admin-preview-list .is-shown {
+  color: var(--color-text);
+}
+
+.admin-preview-list .is-shown > span {
+  color: var(--color-brand);
+}
+
+.admin-preview-list small {
+  color: var(--color-muted);
+}
+
+/* ── Матрица «шаг × сценарий» (вкладка «Навигатор») ── */
+
+.matrix-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.matrix-legend i {
+  margin-right: 4px;
+  font-style: normal;
+}
+
+.matrix-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+}
+
+.matrix {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+
+.matrix th,
+.matrix td {
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--color-border);
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* Первый столбец с названием шага не уезжает при прокрутке */
+.matrix tbody th[scope="row"],
+.matrix-corner {
+  position: sticky;
+  z-index: 1;
+  left: 0;
+  width: 240px;
+  min-width: 180px;
+  padding-left: 14px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 600;
+  text-align: left;
+}
+
+.matrix thead th {
+  vertical-align: bottom;
+  background: var(--color-surface);
+}
+
+.matrix-corner {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.matrix-preset {
+  display: block;
+  padding: 4px;
+  color: var(--color-brand-dark);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.matrix-count {
+  display: block;
+  color: var(--color-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.matrix-stage th {
+  padding-top: 14px;
+  background: var(--color-background);
+  color: var(--color-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.matrix-stage th {
+  position: sticky;
+  left: 0;
+  padding-left: 14px;
+}
+
+.matrix-mark {
+  color: #c4ccc5;
+  font-size: 14px;
+  font-style: normal;
+  cursor: default;
+}
+
+.matrix-mark.is-shown {
+  color: var(--color-brand);
+  cursor: help;
+}
+
+.matrix-mark.is-special {
+  color: var(--chart-before);
+  font-size: 15px;
+  cursor: help;
+}
+
+.matrix-scroll:focus-visible {
+  outline: 3px solid var(--color-lime);
+  outline-offset: 2px;
+}
+
+@media (max-width: 620px) {
+  .matrix tbody th[scope="row"],
+  .matrix-corner {
+    width: 150px;
+    min-width: 150px;
+  }
+}

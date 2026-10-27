@@ -57,8 +57,10 @@ function Header() {
             </NavLink>
           ))}
         </nav>
-        <Link className="admin-link" to="/admin">
-          Админка
+        <Link className="admin-link" to="/admin" aria-label="Панель администратора" title="Панель администратора">
+          {/* На телефоне длинная подпись не помещается рядом с логотипом — там только значок */}
+          <span className="admin-link-full" aria-hidden="true">Панель администратора</span>
+          <span className="admin-link-short" aria-hidden="true">⚙</span>
         </Link>
       </div>
     </header>

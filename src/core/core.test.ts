@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { annuityPayment, buildSchedule, termForPayment, type Loan } from "./annuity";
 import { checkFormula, evaluateFormula } from "./evaluate";
 import {
+  breakEvenDepositRate,
   cityVsVillage,
   coffee,
   depositVsEarly,
@@ -117,6 +118,16 @@ describe("досрочка или вклад", () => {
   it("после потери льготы вывод разворачивается: выгоднее досрочка", () => {
     const r = depositVsEarly({ ...input, events: { rateChanges: [{ month: 1, ratePct: 18.7 }] } });
     expect(r.winner).toBe("early");
+  });
+
+  it("при пороговой ставке вклада выгоды равны", () => {
+    const r = depositVsEarly(input);
+    const rate = breakEvenDepositRate(r, input.amount, input.depositTaxPct).value;
+    // При 3% по кредиту порог около 3,4% (из-за налога на проценты вклада)
+    expect(rate).toBeGreaterThan(3);
+    expect(rate).toBeLessThan(input.depositRatePct);
+    const even = depositVsEarly({ ...input, depositRatePct: rate });
+    expect(even.difference).toBeLessThan(0.01);
   });
 });
 

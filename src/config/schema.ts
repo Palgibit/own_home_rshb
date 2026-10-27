@@ -62,6 +62,9 @@ export type CertificateDef = {
   byYear?: boolean; // нужно выбрать год (справка об уплаченных процентах)
 };
 
+// Вопрос-ответ в справке «Что такое налоговый вычет — коротко»
+export type FaqItem = { q: string; a: string };
+
 // Модуль 3 «Жизнь после ипотеки»: демо-кредит гостя, тексты и сервисы.
 // Тексты могут содержать {параметр} — подставится значение глобального параметра.
 export type AfterDef = {
@@ -69,6 +72,7 @@ export type AfterDef = {
   reminderDays: number; // за сколько дней напоминать о страховке и подтверждениях
   earlyAmount: number; // сумма досрочки по умолчанию, ₽
   salary: number; // зарплата по умолчанию в калькуляторе вычета, ₽/мес
+  taxFaq: FaqItem[]; // справка по вычету над калькулятором
   taxSteps: string[];
   certificates: CertificateDef[];
   insuranceHint: string;
@@ -200,7 +204,7 @@ export function validateConfig(config: AppConfig): string[] {
 // Модуль 3: числа неотрицательные, сервисы существуют, {параметры} в текстах известны
 function validateAfter(config: AppConfig, globalIds: Set<string>): string[] {
   const a = config.after;
-  if (!a || typeof a !== "object" || !a.guestDemo || ![a.taxSteps, a.certificates, a.settleServices].every(Array.isArray)) {
+  if (!a || typeof a !== "object" || !a.guestDemo || ![a.taxFaq, a.taxSteps, a.certificates, a.settleServices].every(Array.isArray)) {
     return ["Нет раздела after (модуль «Жизнь после ипотеки») или в нём не хватает полей"];
   }
   const errors: string[] = [];
@@ -237,7 +241,10 @@ function validateAfter(config: AppConfig, globalIds: Set<string>): string[] {
   }
 
   if (a.taxSteps.some((t) => !t?.trim())) errors.push("После ипотеки, налоговый вычет: пустой шаг — удалите пустую строку");
-  for (const text of [...a.taxSteps, a.insuranceHint, a.ruralHint]) {
+  a.taxFaq.forEach((f, i) => {
+    if (!f?.q?.trim() || !f?.a?.trim()) errors.push(`После ипотеки, справка по вычету, вопрос №${i + 1}: нужны и вопрос, и ответ`);
+  });
+  for (const text of [...a.taxSteps, ...a.taxFaq.flatMap((f) => [f?.q, f?.a]), a.insuranceHint, a.ruralHint]) {
     for (const p of templateParams(text ?? "")) {
       if (!globalIds.has(p)) errors.push(`После ипотеки: в тексте неизвестный параметр {${p}}`);
     }
@@ -311,6 +318,9 @@ function validateNavigator(config: AppConfig, globalIds: Set<string>, scenarioId
   const stepIds = new Set<string>();
   for (const s of nav.steps) {
     const where = `Навигатор, шаг «${s.title}»`;
+    if (!s.id?.trim()) errors.push(`${where}: нужен id`);
+    if (!s.title?.trim()) errors.push(`Навигатор, шаг «${s.id}»: нужно название`);
+    if (!s.recommendation?.trim()) errors.push(`${where}: нужна рекомендация`);
     if (stepIds.has(s.id)) errors.push(`${where}: id «${s.id}» повторяется`);
     stepIds.add(s.id);
     if (!stageIds.has(s.stage)) errors.push(`${where}: неизвестный этап «${s.stage}»`);

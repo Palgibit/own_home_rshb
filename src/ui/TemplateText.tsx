@@ -34,7 +34,7 @@ export function TemplateText({ text }: { text: string }) {
     <>
       {splitTemplate(text).map((p, i) =>
         "param" in p ? (
-          <strong key={i} className="param-value" title={`${labels[p.param] ?? p.param} — настраивается в админке`}>
+          <strong key={i} className="param-value" title={`${labels[p.param] ?? p.param} — настраивается в панели администратора`}>
             {format(p.param)}
           </strong>
         ) : (

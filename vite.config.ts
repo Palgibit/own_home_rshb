@@ -2,7 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
-  // Относительные пути: сайт работает и на GitHub Pages (/own_home/), и из file://
+  // Относительные пути: сайт работает и на GitHub Pages (/own_home_rshb/), и из file://
   base: "./",
   plugins: [react()],
   build: {
