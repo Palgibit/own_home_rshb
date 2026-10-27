@@ -16,13 +16,14 @@ import {
 
 export type TestCase = { loan: Loan; household: Household };
 
-// Тестовый кредит: стартовые значения симулятора; программа — та, для которой сценарий
+// Тестовый кредит: стартовые значения симулятора (сумма = стоимость − взнос);
+// программа — та, для которой сценарий
 export function testCase(config: AppConfig, scenario: ScenarioDef): TestCase {
   const sim = config.simulator;
   const program = scenario.onlyFor ?? sim.program;
   return {
     loan: {
-      principal: sim.principal,
+      principal: Math.max(sim.price - sim.downPayment, 0),
       ratePct: globalValues(config)[PROGRAM_RATE_PARAM[program]] ?? 0,
       months: Math.max(1, Math.round(sim.years * 12)),
     },

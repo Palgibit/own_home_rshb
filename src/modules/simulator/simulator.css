@@ -600,3 +600,383 @@
     padding: 0 16px 16px;
   }
 }
+
+/* ── Покупка: сумма кредита, скидки к ставке, страховка и расходы ── */
+
+.loan-amount {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--color-soft);
+  color: var(--color-muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.loan-amount .explain {
+  color: var(--color-text);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.choice-block summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.choice-summary {
+  color: var(--color-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.choice-summary strong {
+  color: var(--color-text);
+}
+
+.choice-title {
+  margin: 0;
+  font-size: 15px;
+}
+
+.check-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.check input {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
+  accent-color: var(--color-brand);
+  cursor: inherit;
+}
+
+.check.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.check-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.check-label {
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.check-delta {
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.check-hint,
+.check-auto {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* Лесенка ставки: мини-водопад */
+.ladder {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ladder-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.ladder-row-total {
+  padding-top: 6px;
+  border-top: 1px solid var(--color-border);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ladder-label {
+  color: var(--color-muted);
+  line-height: 1.3;
+}
+
+.ladder-row-total .ladder-label {
+  color: var(--color-text);
+}
+
+.ladder-track {
+  position: relative;
+  height: 12px;
+}
+
+.ladder-bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  min-width: 3px;
+  border-radius: 4px;
+}
+
+.ladder-base {
+  background: #c8d0c9;
+}
+
+.ladder-down {
+  background: var(--color-good);
+}
+
+.ladder-up {
+  background: var(--color-bad);
+}
+
+.ladder-total {
+  background: var(--color-brand);
+}
+
+.ladder-value {
+  min-width: 64px;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Горизонтальные столбцы: «страховать или нет», переплата по вариантам плана */
+.hbars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.hbar-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.hbar-label {
+  color: var(--color-muted);
+  line-height: 1.3;
+}
+
+.hbar-track {
+  height: 14px;
+}
+
+.hbar-fill {
+  display: block;
+  height: 100%;
+  min-width: 3px;
+  border-radius: 0 4px 4px 0;
+}
+
+.hbar-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.life-choice,
+.upfront {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+/* Составная полоса: части через зазор 2 px цвета фона, скругление 4 px на концах */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stack-bar {
+  display: flex;
+  gap: 2px;
+  height: 18px;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.stack-part {
+  min-width: 2px;
+  flex-basis: 0;
+}
+
+.stack-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 0;
+  color: var(--color-muted);
+  font-size: 12px;
+  list-style: none;
+}
+
+.stack-legend strong {
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 3px;
+  vertical-align: -1px;
+}
+
+.money-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.money-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.money-row-label {
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.money-row-label strong {
+  color: var(--color-text);
+}
+
+.money-table th:first-child {
+  white-space: nowrap;
+}
+
+.chart-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+
+.chart-head .segmented {
+  flex: 0 1 320px;
+}
+
+/* План досрочных платежей */
+.plan-items {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.plan-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr) minmax(0, 1fr) minmax(0, 1.1fr) 36px;
+  align-items: end;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.plan-remove {
+  width: 36px;
+  height: 44px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  color: var(--color-muted);
+  background: var(--color-surface);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.plan-remove:hover {
+  border-color: var(--color-bad);
+  color: var(--color-bad);
+}
+
+.field-select {
+  cursor: pointer;
+}
+
+/* Подпись «Удалить» у крестика — только на телефоне, где кнопка стоит отдельной строкой */
+.plan-remove-text {
+  display: none;
+}
+
+@media (max-width: 620px) {
+  .plan-item {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .plan-remove {
+    width: auto;
+    height: 36px;
+    padding: 0 14px;
+    grid-column: 1 / -1;
+    justify-self: end;
+    font-size: 13px;
+  }
+
+  .plan-remove-text {
+    display: inline;
+  }
+
+  /* Две колонки узкие: ужимаем поля, чтобы «Сократить срок» помещалось целиком */
+  .plan-item .field-box {
+    padding: 0 10px;
+  }
+
+  .plan-item .field-select {
+    font-size: 14px;
+  }
+
+  .hbar-row,
+  .ladder-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  /* На узком экране подпись — над столбцом */
+  .hbar-label,
+  .ladder-label {
+    grid-column: 1 / -1;
+  }
+
+  .chart-head .segmented {
+    flex-basis: 100%;
+  }
+}

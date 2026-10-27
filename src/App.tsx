@@ -1,4 +1,5 @@
-import { Link, NavLink, Route, Routes } from "react-router-dom";
+import { useEffect } from "react";
+import { Link, NavLink, Route, Routes, useLocation } from "react-router-dom";
 import { AdminPage } from "./modules/admin/AdminPage";
 import { AfterPage } from "./modules/after/AfterPage";
 import { NavigatorPage } from "./modules/navigator/NavigatorPage";
@@ -162,9 +163,20 @@ function Footer() {
   );
 }
 
+// При переходе на другую страницу — наверх. Только при смене пути:
+// выбор сценария меняет ?scenario= и не должен прокручивать страницу.
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
+
 export default function App() {
   return (
     <div className="app-shell">
+      <ScrollToTop />
       <Header />
       <Routes>
         <Route path="/" element={<HomePage />} />

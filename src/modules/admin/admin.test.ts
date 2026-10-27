@@ -24,7 +24,7 @@ describe("админка: предпросмотр формул", () => {
 
   it("тестовый кредит — стартовые значения симулятора", () => {
     const vars = Object.fromEntries(testVariables(defaultConfig, scenario("early-payment")).map((v) => [v.name, v.value]));
-    expect(vars.S).toBe(defaultConfig.simulator.principal);
+    expect(vars.S).toBe(defaultConfig.simulator.price - defaultConfig.simulator.downPayment);
     expect(vars.n).toBe(defaultConfig.simulator.years * 12);
     expect(vars.P).toBeCloseTo(annuityPayment(vars.S, vars.rate, vars.n), 6);
     expect(vars.X).toBe(500000);

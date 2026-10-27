@@ -1,17 +1,25 @@
-// Базовый кредит: программа, сумма, ставка, срок, доход и расходы семьи
+// Базовый кредит: программа, стоимость и взнос (→ сумма кредита), базовая ставка, срок,
+// доход и расходы семьи. Скидки к ставке и страховка с расходами — в свёрнутых блоках.
 
 import { useConfig } from "../../config/ConfigContext";
 import { PROGRAM_RATE_PARAM, PROGRAMS, type LoanProgram } from "../../config/schema";
+import { ExplainableNumber } from "../../ui/ExplainableNumber";
 import { NumberField } from "../../ui/NumberField";
-import { formatRub } from "../../ui/format";
-import type { BaseInput } from "./types";
+import { formatNumber, formatPct, formatRub } from "../../ui/format";
+import { CostsBlock } from "./CostsBlock";
+import type { Purchase } from "./purchaseModel";
+import { RateChecklist } from "./RateChecklist";
+import type { BaseInput, PurchaseChoice } from "./types";
 
 type Props = {
   value: BaseInput;
   onChange: (next: BaseInput) => void;
+  choice: PurchaseChoice;
+  onChoice: (next: PurchaseChoice) => void;
+  purchase: Purchase;
 };
 
-export function BaseLoanForm({ value, onChange }: Props) {
+export function BaseLoanForm({ value, onChange, choice, onChoice, purchase }: Props) {
   const { config, globals } = useConfig();
   const set = (patch: Partial<BaseInput>) => onChange({ ...value, ...patch });
 
@@ -19,9 +27,8 @@ export function BaseLoanForm({ value, onChange }: Props) {
   const setProgram = (program: LoanProgram) =>
     set({ program, ratePct: globals[PROGRAM_RATE_PARAM[program]] ?? value.ratePct });
 
-  const ruralLimit = globals.ruralMaxLoan;
-  const overLimit = value.program === "rural" && ruralLimit !== undefined && value.principal > ruralLimit;
   const rateHint = config.params.find((p) => p.id === PROGRAM_RATE_PARAM[value.program])?.hint;
+  const { warnings } = purchase;
 
   return (
     <section className="panel" aria-labelledby="base-heading">
@@ -46,15 +53,46 @@ export function BaseLoanForm({ value, onChange }: Props) {
 
       <div className="form-grid">
         <NumberField
-          label="Сумма кредита"
+          label="Стоимость жилья"
           unit="₽"
-          value={value.principal}
+          value={value.price}
           min={0}
-          max={100_000_000}
-          onChange={(principal) => set({ principal })}
+          max={200_000_000}
+          onChange={(price) => set({ price, downPayment: Math.min(value.downPayment, price) })}
         />
         <NumberField
-          label="Ставка"
+          label="Первоначальный взнос"
+          unit="₽"
+          value={value.downPayment}
+          min={0}
+          max={value.price}
+          // Минимум — без округления: 30,01%, а не 30%
+          hint={`${formatPct(purchase.downPct)} от стоимости. Минимум по программе — ${formatNumber(purchase.minDownPct)}%.`}
+          onChange={(downPayment) => set({ downPayment })}
+        />
+      </div>
+
+      <p className="loan-amount">
+        <span>Сумма кредита</span>
+        <ExplainableNumber value={purchase.loanAmount} />
+      </p>
+
+      {warnings.downTooLow && (
+        <p className="note note-warn">
+          Взнос меньше минимума программы: нужно от {formatNumber(warnings.downTooLow.minPct)}%, это{" "}
+          {formatRub(Math.ceil(warnings.downTooLow.minAmount))}.
+        </p>
+      )}
+      {warnings.overLimit && (
+        <p className="note note-warn">
+          Кредит больше лимита сельской ипотеки — {formatRub(warnings.overLimit.limit)} на заёмщика. Увеличьте взнос
+          или оформите второй кредит на супруга: на один объект можно взять два.
+        </p>
+      )}
+
+      <div className="form-grid">
+        <NumberField
+          label="Базовая ставка"
           unit="%"
           value={value.ratePct}
           min={0}
@@ -64,6 +102,11 @@ export function BaseLoanForm({ value, onChange }: Props) {
           onChange={(ratePct) => set({ ratePct })}
         />
         <NumberField label="Срок" unit="лет" value={value.years} min={1} max={35} onChange={(years) => set({ years })} />
+      </div>
+
+      <RateChecklist program={value.program} basePct={value.ratePct} choice={choice} onChoice={onChoice} purchase={purchase} />
+
+      <div className="form-grid">
         <NumberField
           label="Доход семьи"
           unit="₽/мес"
@@ -83,11 +126,7 @@ export function BaseLoanForm({ value, onChange }: Props) {
         />
       </div>
 
-      {overLimit && (
-        <p className="note note-warn">
-          Лимит сельской ипотеки — {formatRub(ruralLimit)} на заёмщика. Супруги могут взять два кредита на один объект.
-        </p>
-      )}
+      <CostsBlock choice={choice} onChoice={onChoice} purchase={purchase} />
     </section>
   );
 }

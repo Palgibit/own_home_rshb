@@ -14,6 +14,7 @@ import { FileTab } from "./FileTab";
 import { HintsTab } from "./HintsTab";
 import { NavigatorTab } from "./NavigatorTab";
 import { ParamsTab } from "./ParamsTab";
+import { RatesTab } from "./RatesTab";
 import { ScenariosTab } from "./ScenariosTab";
 import "../simulator/simulator.css";
 import "./admin.css";
@@ -27,6 +28,7 @@ export type Edit = (fn: (draft: AppConfig) => void) => void;
 
 const TABS = [
   ["params", "Параметры"],
+  ["rates", "Ставка и расходы"],
   ["scenarios", "Сценарии и формулы"],
   ["hints", "Подсказки"],
   ["navigator", "Навигатор"],
@@ -156,6 +158,8 @@ function AdminEditor({ onLogout }: { onLogout: () => void }) {
     switch (tab) {
       case "params":
         return <ParamsTab draft={draft} edit={edit} />;
+      case "rates":
+        return <RatesTab draft={draft} edit={edit} />;
       case "scenarios":
         return <ScenariosTab draft={draft} edit={edit} />;
       case "hints":

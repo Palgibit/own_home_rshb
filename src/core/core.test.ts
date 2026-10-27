@@ -13,6 +13,17 @@ import {
   realPayments,
 } from "./features";
 import { applyScenario, computeMetrics, pdnLevel } from "./scenarios";
+import { comparePlan, expandPlan, type PlanItem } from "./plan";
+import {
+  effectiveRate,
+  firstYearPremium,
+  insuranceCosts,
+  lifeInsuranceChoice,
+  loanAmount,
+  purchaseWarnings,
+  upfront,
+  type RateOption,
+} from "./purchase";
 import { buildMatrix, buildRoute, normalizeAnswers, optionBlockedBy, splitTemplate } from "./navigator";
 import { defaultConfig } from "../config/store";
 import { globalValues, validateConfig } from "../config/schema";
@@ -329,5 +340,155 @@ describe("навигатор", () => {
     expect(text).toContain("family");
     expect(text).toContain("noSuchParam");
     expect(text).toContain("Плохой");
+  });
+});
+
+// ── Покупка: кредит, ставка, страховка ───────────────────────────
+
+describe("сумма кредита", () => {
+  it("кредит = стоимость − взнос", () => {
+    const a = loanAmount(8_600_000, 2_600_000);
+    expect(a.value).toBe(6_000_000);
+    expect(a.formulaId).toBe("loanAmount");
+  });
+
+  it("страховка первого года в кредите увеличивает сумму", () => {
+    const premium = firstYearPremium(6_000_000, { propertyPct: 0.15, lifePct: 0.4 });
+    expect(premium).toBeCloseTo(33_000, 6);
+    expect(loanAmount(8_600_000, 2_600_000, premium).value).toBeCloseTo(6_033_000, 6);
+  });
+
+  it("предупреждения: взнос ниже минимума и кредит выше лимита", () => {
+    expect(purchaseWarnings(8_600_000, 2_600_000, 6_000_000, { minDownPct: 30.01, maxLoan: 6_000_000 })).toEqual({});
+    const w = purchaseWarnings(8_600_000, 2_000_000, 6_600_000, { minDownPct: 30.01, maxLoan: 6_000_000 });
+    expect(w.downTooLow?.minAmount).toBeCloseTo(2_580_860, 0);
+    expect(w.overLimit?.limit).toBe(6_000_000);
+  });
+});
+
+describe("итоговая ставка", () => {
+  const options: RateOption[] = defaultConfig.rateOptions;
+  const ctx = {
+    program: "market" as const,
+    selected: [] as string[],
+    downPct: 30,
+    lifeInsurance: true,
+    bigDownFromPct: 50,
+    bigDownDiscount: 0.3,
+    noLifeInsuranceRate: 1,
+  };
+
+  it("без галочек — базовая", () => {
+    expect(effectiveRate(18.7, options, ctx).rate.value).toBe(18.7);
+  });
+
+  it("сельская ипотека игнорирует зарплатную скидку, но надбавка за отказ от страховки действует", () => {
+    const rural = { ...ctx, program: "rural" as const, selected: ["salary"] };
+    expect(effectiveRate(3, options, rural).rate.value).toBe(3);
+    expect(effectiveRate(3, options, { ...rural, lifeInsurance: false }).rate.value).toBeCloseTo(4, 10);
+  });
+
+  it("из группы берётся только одна скидка", () => {
+    const r = effectiveRate(18.7, options, { ...ctx, selected: ["salary", "reliable"] });
+    expect(r.adjustments.map((a) => a.id)).toEqual(["salary"]);
+    expect(r.rate.value).toBeCloseTo(18.4, 10);
+  });
+
+  it("скидка за взнос от 50% срабатывает сама", () => {
+    expect(effectiveRate(18.7, options, { ...ctx, downPct: 49.9 }).rate.value).toBe(18.7);
+    expect(effectiveRate(18.7, options, { ...ctx, downPct: 50 }).rate.value).toBeCloseTo(18.4, 10);
+  });
+
+  it("ставка не уходит ниже нуля", () => {
+    expect(effectiveRate(0.1, options, { ...ctx, selected: ["salary"] }).rate.value).toBe(0);
+  });
+});
+
+describe("страховка", () => {
+  const loan: Loan = { principal: 6_000_000, ratePct: 3, months: 240 };
+  const settings = { propertyPct: 0.15, lifePct: 0.4, loanBase: 6_000_000, financedFirstYear: false };
+
+  it("премия убывает вместе с остатком долга", () => {
+    const ins = insuranceCosts(buildSchedule(loan), settings);
+    expect(ins.byYear).toHaveLength(20);
+    expect(ins.firstYear).toBeCloseTo(33_000, 6);
+    for (let y = 1; y < ins.byYear.length; y++) expect(ins.byYear[y]).toBeLessThan(ins.byYear[y - 1]);
+  });
+
+  it("досрочка уменьшает страховку", () => {
+    const base = computeMetrics(loan, household, {}, undefined, settings);
+    const early = computeMetrics(loan, household, { earlyPayments: [{ month: 12, amount: 1_000_000, mode: "term" }] }, undefined, settings);
+    expect(early.insurance!.total).toBeLessThan(base.insurance!.total);
+  });
+
+  it("переплата включает страховку, ПДН — нет", () => {
+    const without = computeMetrics(loan, household);
+    const withIns = computeMetrics(loan, household, {}, undefined, settings);
+    expect(withIns.overpayment.value).toBeCloseTo(without.overpayment.value + withIns.insurance!.total, 6);
+    expect(withIns.pdn.value).toBeCloseTo(without.pdn.value, 10);
+    expect(withIns.budget.value).toBeCloseTo(without.budget.value - 33_000 / 12, 6);
+  });
+
+  it("страховать жизнь: сравнение полиса и лишних процентов", () => {
+    const r = lifeInsuranceChoice({ principal: 6_000_000, months: 240, rateWithLife: 3, rateWithoutLife: 4, lifePct: 0.4 });
+    expect(r.policy.value).toBeGreaterThan(0);
+    expect(r.extraInterest.value).toBeCloseTo(buildSchedule({ ...loan, ratePct: 4 }).totalInterest - buildSchedule(loan).totalInterest, 6);
+    expect(r.difference).toBeCloseTo(Math.abs(r.extraInterest.value - r.policy.value), 6);
+  });
+
+  it("нужно сразу = взнос + расходы + страховка не в кредите", () => {
+    expect(upfront(2_600_000, [{ label: "Оценка", amount: 6000 }], 33_000).value).toBe(2_639_000);
+  });
+});
+
+describe("план досрочных платежей", () => {
+  const loan: Loan = { principal: 6_000_000, ratePct: 3, months: 240 };
+
+  it("регулярный ежемесячный платёж разворачивается до конца срока", () => {
+    const events = expandPlan([{ kind: "monthly", fromMonth: 1, amount: 5000, mode: "term" }], 240);
+    expect(events).toHaveLength(240);
+    expect(expandPlan([{ kind: "yearly", fromMonth: 12, amount: 1, mode: "term" }], 240)).toHaveLength(20);
+    expect(expandPlan([{ kind: "once", fromMonth: 300, amount: 1, mode: "term" }], 240)).toHaveLength(0);
+  });
+
+  it("разовый платёж в плане = досрочка в графике", () => {
+    const plan = comparePlan(loan, household, [{ kind: "once", fromMonth: 12, amount: 500_000, mode: "term" }]);
+    const direct = buildSchedule(loan, { earlyPayments: [{ month: 12, amount: 500_000, mode: "term" }] });
+    expect(plan.yours.metrics.schedule.totalInterest).toBeCloseTo(direct.totalInterest, 6);
+  });
+
+  it("«весь план — срок» экономит больше, чем «весь план — платёж»", () => {
+    const items: PlanItem[] = [
+      { kind: "once", fromMonth: 12, amount: 500_000, mode: "payment" },
+      { kind: "monthly", fromMonth: 1, amount: 5000, mode: "payment" },
+    ];
+    const plan = comparePlan(loan, household, items);
+    expect(plan.term.saving.value).toBeGreaterThan(plan.payment.saving.value);
+    expect(plan.payment.saving.value).toBeGreaterThan(0);
+    expect(plan.term.metrics.months.value).toBeLessThan(240);
+    // «Уменьшить платёж» держит срок почти прежним: последняя доплата может закрыть кредит на месяц раньше
+    expect(plan.payment.metrics.months.value).toBeGreaterThanOrEqual(239);
+    // В режиме «уменьшить платёж» платёж в конце меньше исходного
+    expect(plan.payment.metrics.payment.value).toBeLessThan(plan.none.metrics.payment.value);
+  });
+});
+
+describe("конфиг: ставка и расходы", () => {
+  it("все formulaId ядра описаны в formulas", () => {
+    const ids = new Set(defaultConfig.formulas.map((f) => f.id));
+    for (const id of ["loanAmount", "effectiveRate", "insurance", "upfront", "planSaving", "extraInterest"]) expect(ids).toContain(id);
+  });
+
+  it("валидация ловит повторы id, плохие программы и отрицательные суммы", () => {
+    const broken = structuredClone(defaultConfig);
+    broken.rateOptions.push({ ...broken.rateOptions[0] });
+    broken.rateOptions[1].programs = ["family" as never];
+    broken.dealCosts[0].amount = -1;
+    broken.simulator.downPayment = broken.simulator.price + 1;
+    const text = validateConfig(broken).join("\n");
+    expect(text).toContain("повторяется");
+    expect(text).toContain("family");
+    expect(text).toContain("неотрицательное");
+    expect(text).toContain("взнос больше стоимости");
   });
 });

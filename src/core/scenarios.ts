@@ -8,6 +8,7 @@
 import { buildSchedule, type EarlyMode, type Loan, type Schedule, type ScheduleEvents } from "./annuity";
 import { checkFormula, evaluateFormula } from "./evaluate";
 import { explained, inp, type Explained } from "./explain";
+import { insuranceCosts, type InsuranceCosts, type InsuranceSettings } from "./purchase";
 
 export type Household = {
   income: number; // доход семьи в месяц
@@ -89,10 +90,13 @@ export function baseScope(loan: Loan, household: Household, payment: number): Re
 export type Metrics = {
   payment: Explained; // платёж по ипотеке
   months: Explained; // срок
-  overpayment: Explained; // переплата (ипотека + другие кредиты сценария)
+  overpayment: Explained; // переплата (проценты + страховка + другие кредиты сценария)
   budget: Explained; // свободный бюджет в месяц
   pdn: Explained; // показатель долговой нагрузки, %
   schedule: Schedule;
+  interest: number; // проценты по ипотеке за весь срок
+  otherOverpayment: number; // переплата по другим кредитам сценария
+  insurance?: InsuranceCosts; // страховка по годам — если её считаем
 };
 
 export type Extras = {
@@ -109,8 +113,15 @@ export function computeMetrics(
   household: Household,
   events: ScheduleEvents = {},
   extras: Extras = NO_EXTRAS,
+  insuranceSettings?: InsuranceSettings,
 ): Metrics {
   const schedule = buildSchedule(loan, events);
+  // Страховка считается по фактическому графику: досрочка уменьшает остаток — дешевеет и полис
+  const insurance = insuranceSettings ? insuranceCosts(schedule, insuranceSettings) : undefined;
+  const insuranceTotal = insurance?.total ?? 0;
+  // В бюджет — среднемесячная премия первого года, который оплачивается из своего кармана
+  // (если премию первого года включили в кредит, это второй год)
+  const insuranceMonthly = (insurance?.outOfPocketYearly ?? 0) / 12;
   const P = schedule.payment;
   const { lastRecalc } = schedule;
 
@@ -125,15 +136,17 @@ export function computeMetrics(
     fact: inp(schedule.months, "Месяцев в графике с учётом событий"),
   });
 
-  // Переплата = сумма процентов по графику (= P·n − S, если событий нет)
-  const overpayment = explained("overpayment", schedule.totalInterest + extras.extraOverpayment, {
+  // Переплата = проценты по графику (= P·n − S, если событий нет) + страховка + другие кредиты
+  const overpayment = explained("overpayment", schedule.totalInterest + insuranceTotal + extras.extraOverpayment, {
     interest: inp(schedule.totalInterest, "Проценты по ипотеке, ₽"),
+    insurance: inp(insuranceTotal, "Страховка за весь срок, ₽"),
     other: inp(extras.extraOverpayment, "Переплата по другим кредитам, ₽"),
   });
 
   const totalIncome = household.income + extras.extraIncome;
-  // Свободный бюджет = доходы − расходы − все платежи (включая добровольную доплату)
-  const budgetValue = totalIncome - household.expenses - P - extras.extraPayment - extras.extraMonthly;
+  // Свободный бюджет = доходы − расходы − все платежи (включая добровольную доплату) − страховка в месяц
+  const budgetValue =
+    totalIncome - household.expenses - P - extras.extraPayment - extras.extraMonthly - insuranceMonthly;
   const budget = explained("budget", budgetValue, {
     income: inp(household.income, "Доход семьи, ₽/мес"),
     extraIncome: inp(extras.extraIncome, "Дополнительный доход, ₽/мес"),
@@ -141,16 +154,27 @@ export function computeMetrics(
     P: inp(P, "Платёж по ипотеке, ₽/мес"),
     extraPayment: inp(extras.extraPayment, "Платежи по другим кредитам, ₽/мес"),
     extraMonthly: inp(extras.extraMonthly, "Добровольная доплата, ₽/мес"),
+    insurance: inp(insuranceMonthly, "Страховка в среднем, ₽/мес"),
   });
 
-  // ПДН считается по обязательным платежам; добровольная доплата в него не входит
+  // ПДН — по обязательным платежам, как в банке: без добровольной доплаты и без страховки
   const pdnValue = totalIncome > 0 ? ((P + extras.extraPayment) / totalIncome) * 100 : Infinity;
   const pdn = explained("pdn", pdnValue, {
     payments: inp(P + extras.extraPayment, "Обязательные платежи, ₽/мес"),
     income: inp(totalIncome, "Доход с учётом доп. дохода, ₽/мес"),
   });
 
-  return { payment, months, overpayment, budget, pdn, schedule };
+  return {
+    payment,
+    months,
+    overpayment,
+    budget,
+    pdn,
+    schedule,
+    interest: schedule.totalInterest,
+    otherOverpayment: extras.extraOverpayment,
+    insurance,
+  };
 }
 
 export type PdnLevel = "green" | "yellow" | "red";
@@ -181,6 +205,7 @@ export type ScenarioInput = {
   globals: Record<string, number>; // глобальные параметры конфига (ставки, лимиты…)
   globalLabels?: Record<string, string>; // их подписи — для объяснений
   earlyMode?: EarlyMode;
+  insurance?: InsuranceSettings; // страховка: учитывается и в «было», и в «стало»
 };
 
 export function applyScenario({
@@ -191,8 +216,9 @@ export function applyScenario({
   globals,
   globalLabels = {},
   earlyMode = "term",
+  insurance,
 }: ScenarioInput): ScenarioResult {
-  const before = computeMetrics(loan, household);
+  const before = computeMetrics(loan, household, {}, NO_EXTRAS, insurance);
   // Порядок важен: параметры сценария перекрывают базовые и глобальные переменные
   const scope = { ...globals, ...baseScope(loan, household, before.payment.value), ...params };
   const labelOf = (name: string) =>
@@ -230,11 +256,11 @@ export function applyScenario({
     extraMonthly: extras.extraMonthly,
   });
 
-  const after = computeMetrics(loan, household, eventsFor(earlyMode), extras);
+  const after = computeMetrics(loan, household, eventsFor(earlyMode), extras, insurance);
   const result: ScenarioResult = { before, after, effects };
   if (earlyAmount) {
     const other: EarlyMode = earlyMode === "term" ? "payment" : "term";
-    result.alternative = { mode: other, after: computeMetrics(loan, household, eventsFor(other), extras) };
+    result.alternative = { mode: other, after: computeMetrics(loan, household, eventsFor(other), extras, insurance) };
   }
   return result;
 }

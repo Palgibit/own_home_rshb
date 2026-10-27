@@ -2,13 +2,21 @@
 // Параметр доступен во всех формулах по id и в текстах как {id}.
 
 import { useState } from "react";
-import { PROGRAMS, type AppConfig, type GlobalParam, type LoanProgram, type SimulatorDefaults } from "../../config/schema";
+import {
+  PROGRAMS,
+  type AppConfig,
+  type GlobalParam,
+  type LoanProgram,
+  type PlanItem,
+  type SimulatorDefaults,
+} from "../../config/schema";
 import { NumberField } from "../../ui/NumberField";
-import { optional, SelectField, TextField } from "./fields";
+import { JsonEditor, optional, SelectField, TextField } from "./fields";
 import type { Edit } from "./AdminPage";
 
-const SIM_LABELS: Record<Exclude<keyof SimulatorDefaults, "program">, [string, string?]> = {
-  principal: ["Сумма кредита", "₽"],
+const SIM_LABELS: Record<Exclude<keyof SimulatorDefaults, "program" | "planExample">, [string, string?]> = {
+  price: ["Стоимость жилья", "₽"],
+  downPayment: ["Первоначальный взнос", "₽"],
   years: ["Срок", "лет"],
   income: ["Доход семьи", "₽/мес"],
   expenses: ["Обязательные расходы", "₽/мес"],
@@ -86,6 +94,13 @@ export function ParamsTab({ draft, edit }: { draft: AppConfig; edit: Edit }) {
             />
           ))}
         </div>
+        <JsonEditor
+          label="Стартовый план досрочных платежей"
+          rows={8}
+          value={draft.simulator.planExample}
+          hint="kind: once — разовый, monthly — каждый месяц, yearly — каждый год; fromMonth — с какого месяца; amount — сумма, ₽; mode: term — сократить срок, payment — уменьшить платёж."
+          onChange={(v: PlanItem[]) => edit((d) => void (d.simulator.planExample = v))}
+        />
       </section>
     </div>
   );

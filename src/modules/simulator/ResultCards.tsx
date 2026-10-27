@@ -41,7 +41,17 @@ function Delta({ before, after, format, better }: { before: number; after: numbe
   );
 }
 
-function BeforeAfter({ before, after, format }: { before: Explained; after: Explained; format: Format }) {
+// Без сценария — одно значение; со сценарием — «было → стало»
+function BeforeAfter({ before, after, format }: { before: Explained; after?: Explained; format: Format }) {
+  if (!after) {
+    return (
+      <div className="metric-values">
+        <span className="metric-after">
+          <ExplainableNumber value={before} format={format} />
+        </span>
+      </div>
+    );
+  }
   return (
     <div className="metric-values">
       <span className="metric-before">
@@ -58,26 +68,29 @@ function BeforeAfter({ before, after, format }: { before: Explained; after: Expl
 }
 
 type Props = {
-  result: ScenarioResult;
+  // Без сценария есть только before: показываем значения без «было → стало»
+  result: Pick<ScenarioResult, "before"> & Partial<ScenarioResult>;
   earlyMode: EarlyMode;
 };
 
 export function ResultCards({ result, earlyMode }: Props) {
   const { globals } = useConfig();
-  const { before, after, effects, alternative } = result;
-  const level = pdnLevel(after.pdn.value, globals.pdnYellow ?? 30, globals.pdnRed ?? 50);
+  const { before, after, effects = {}, alternative } = result;
+  const current = after ?? before;
+  const level = pdnLevel(current.pdn.value, globals.pdnYellow ?? 30, globals.pdnRed ?? 50);
 
   // Для сравнения режимов досрочки: какой результат к какому режиму относится
-  const byMode: Record<EarlyMode, Metrics> | null = alternative
-    ? ({ [earlyMode]: after, [alternative.mode]: alternative.after } as Record<EarlyMode, Metrics>)
-    : null;
+  const byMode: Record<EarlyMode, Metrics> | null =
+    alternative && after
+      ? ({ [earlyMode]: after, [alternative.mode]: alternative.after } as Record<EarlyMode, Metrics>)
+      : null;
 
   return (
     <div className="results">
       <article className="metric-card metric-main">
         <h3 className="metric-label">Платёж по ипотеке в месяц</h3>
-        <BeforeAfter before={before.payment} after={after.payment} format="rub" />
-        <Delta before={before.payment.value} after={after.payment.value} format="rub" better="lower" />
+        <BeforeAfter before={before.payment} after={after?.payment} format="rub" />
+        {after && <Delta before={before.payment.value} after={after.payment.value} format="rub" better="lower" />}
         {effects.extraPayment && (
           <span className="metric-extra">
             + другой кредит <ExplainableNumber value={effects.extraPayment} /> в месяц
@@ -89,11 +102,16 @@ export function ResultCards({ result, earlyMode }: Props) {
         {SMALL_METRICS.map((m) => (
           <article className="metric-card" key={m.key}>
             <h3 className="metric-label">{m.label}</h3>
-            <BeforeAfter before={before[m.key]} after={after[m.key]} format={m.format} />
-            <Delta before={before[m.key].value} after={after[m.key].value} format={m.format} better={m.better} />
+            <BeforeAfter before={before[m.key]} after={after?.[m.key]} format={m.format} />
+            {after && <Delta before={before[m.key].value} after={after[m.key].value} format={m.format} better={m.better} />}
+            {m.key === "overpayment" && current.insurance && (
+              <span className="metric-extra">
+                в т.ч. страховка <ExplainableNumber value={current.insurance.explain} />
+              </span>
+            )}
             {m.key === "budget" && (
               <span className={`pdn-badge pdn-${level}`}>
-                <span aria-hidden="true">●</span> Нагрузка <ExplainableNumber value={after.pdn} format="pct" /> —{" "}
+                <span aria-hidden="true">●</span> Нагрузка <ExplainableNumber value={current.pdn} format="pct" /> —{" "}
                 {PDN_TEXT[level]}
               </span>
             )}

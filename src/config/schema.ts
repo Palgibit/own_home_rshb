@@ -4,10 +4,14 @@
 import { checkFormula, FUNCTION_NAMES } from "../core/evaluate";
 import { BASE_VARS, EFFECTS, type EffectKey, type LoanProgram, type ScenarioDef } from "../core/scenarios";
 import { findConflict, templateParams, type Condition, type NavigatorDef } from "../core/navigator";
+import type { PlanItem } from "../core/plan";
+import type { DealCost, RateOption } from "../core/purchase";
 import type { GuestDemo } from "../data/guest";
 
 export type { LoanProgram, ParamDef, ScenarioDef } from "../core/scenarios";
 export type { NavigatorDef, StepDef } from "../core/navigator";
+export type { PlanItem } from "../core/plan";
+export type { DealCost, RateOption } from "../core/purchase";
 
 // Сервис экосистемы «Своё»: на него ведут шаги навигатора и модуль 3.
 // Пустой href — ссылка-заглушка: сервис показывается без перехода.
@@ -40,7 +44,8 @@ export type FormulaDoc = {
 // Ставка берётся из глобальных параметров по программе (ruralRate / marketRate).
 export type SimulatorDefaults = {
   program: LoanProgram;
-  principal: number; // сумма кредита, ₽
+  price: number; // стоимость жилья, ₽
+  downPayment: number; // первоначальный взнос, ₽ (кредит = стоимость − взнос)
   years: number; // срок, лет
   income: number; // доход семьи, ₽/мес
   expenses: number; // обязательные расходы, ₽/мес
@@ -51,6 +56,7 @@ export type SimulatorDefaults = {
   coffeeMax: number; // … максимум ползунка, ₽/мес
   ownFunds: number; // «город или село»: свои средства, ₽
   familySize: number; // … человек в семье
+  planExample: PlanItem[]; // стартовый план досрочных платежей
 };
 
 // Справка, которую клиент заказывает в модуле 3
@@ -85,6 +91,8 @@ export type AppConfig = {
   version: 1;
   params: GlobalParam[];
   simulator: SimulatorDefaults;
+  rateOptions: RateOption[]; // скидки и надбавки к ставке (галочки в симуляторе)
+  dealCosts: DealCost[]; // расходы на сделку (галочки в блоке «Нужно сразу»)
   formulas: FormulaDoc[];
   scenarios: ScenarioDef[];
   services: ServiceDef[];
@@ -94,6 +102,27 @@ export type AppConfig = {
 
 // Параметры, без которых модуль 3 не посчитает обязательства и вычет
 const AFTER_PARAMS = ["employmentCheckMonths", "obligationYears", "registrationDays", "lossRate", "ndfl", "propertyLimit", "interestLimit"];
+
+// Параметры, без которых симулятор не посчитает ставку, страховку и минимальный взнос
+const SIM_PARAMS = [
+  "ruralDownPct",
+  "cityDownPct",
+  "ruralMaxLoan",
+  "bigDownFromPct",
+  "bigDownDiscount",
+  "noLifeInsuranceRate",
+  "propertyInsurancePct",
+  "lifeInsurancePct",
+];
+
+// Минимальный взнос по программе — из глобальных параметров
+export const PROGRAM_DOWN_PARAM: Record<LoanProgram, string> = {
+  rural: "ruralDownPct",
+  market: "cityDownPct",
+};
+
+const PLAN_KINDS = ["once", "monthly", "yearly"];
+const EARLY_MODES = ["term", "payment"];
 
 export const PROGRAMS: Record<LoanProgram, string> = {
   rural: "Сельская ипотека",
@@ -151,14 +180,26 @@ export function validateConfig(config: AppConfig): string[] {
   } else {
     if (!(sim.program in PROGRAMS)) errors.push(`Симулятор: неизвестная программа «${sim.program}»`);
     for (const [key, v] of Object.entries(sim)) {
-      if (key !== "program" && !(Number.isFinite(v) && (v as number) >= 0)) {
+      if (key !== "program" && key !== "planExample" && !(Number.isFinite(v) && (v as number) >= 0)) {
         errors.push(`Симулятор: «${key}» должно быть неотрицательным числом`);
       }
     }
+    if (sim.downPayment > sim.price) errors.push("Симулятор: первоначальный взнос больше стоимости жилья");
+    if (!Array.isArray(sim.planExample)) errors.push("Симулятор: нет стартового плана досрочек (planExample)");
+    else
+      sim.planExample.forEach((p, i) => {
+        const where = `Симулятор, план досрочек, строка ${i + 1}`;
+        if (!PLAN_KINDS.includes(p?.kind)) errors.push(`${where}: тип — once, monthly или yearly`);
+        if (!EARLY_MODES.includes(p?.mode)) errors.push(`${where}: режим — term или payment`);
+        if (!(Number.isFinite(p?.amount) && p.amount >= 0)) errors.push(`${where}: сумма — неотрицательное число`);
+        if (!(Number.isFinite(p?.fromMonth) && p.fromMonth >= 1)) errors.push(`${where}: месяц — число от 1`);
+      });
   }
   for (const id of Object.values(PROGRAM_RATE_PARAM)) {
     if (!globalIds.has(id)) errors.push(`Параметры: нет ставки программы «${id}»`);
   }
+  for (const id of SIM_PARAMS) if (!globalIds.has(id)) errors.push(`Параметры: нет «${id}» — он нужен симулятору`);
+  errors.push(...validateRatesAndCosts(config));
 
   const scenarioIds = new Set<string>();
   for (const s of config.scenarios) {
@@ -198,6 +239,36 @@ export function validateConfig(config: AppConfig): string[] {
 
   errors.push(...validateNavigator(config, globalIds, scenarioIds));
   errors.push(...validateAfter(config, globalIds));
+  return errors;
+}
+
+// Скидки и надбавки к ставке, расходы на сделку: id уникальны, числа — числа, программы существуют
+function validateRatesAndCosts(config: AppConfig): string[] {
+  if (!Array.isArray(config.rateOptions) || !Array.isArray(config.dealCosts)) {
+    return ["Нет разделов rateOptions (скидки и надбавки) или dealCosts (расходы на сделку)"];
+  }
+  const errors: string[] = [];
+  const optionIds = new Set<string>();
+  for (const o of config.rateOptions) {
+    const where = `Ставка, «${o.label || o.id}»`;
+    if (!o.id?.trim()) errors.push(`${where}: нужен id`);
+    else if (optionIds.has(o.id)) errors.push(`${where}: id «${o.id}» повторяется`);
+    optionIds.add(o.id);
+    if (!o.label?.trim()) errors.push(`Ставка, «${o.id}»: нужна подпись`);
+    if (!Number.isFinite(o.deltaPct)) errors.push(`${where}: поправка должна быть числом`);
+    if (o.programs !== undefined && !Array.isArray(o.programs)) errors.push(`${where}: programs должно быть списком`);
+    for (const p of o.programs ?? []) if (!(p in PROGRAMS)) errors.push(`${where}: неизвестная программа «${p}»`);
+  }
+  const costIds = new Set<string>();
+  for (const c of config.dealCosts) {
+    const where = `Расходы на сделку, «${c.label || c.id}»`;
+    if (!c.id?.trim()) errors.push(`${where}: нужен id`);
+    else if (costIds.has(c.id)) errors.push(`${where}: id «${c.id}» повторяется`);
+    costIds.add(c.id);
+    if (!c.label?.trim()) errors.push(`Расходы на сделку, «${c.id}»: нужна подпись`);
+    if (!(Number.isFinite(c.amount) && c.amount >= 0)) errors.push(`${where}: сумма — неотрицательное число`);
+    if (typeof c.default !== "boolean") errors.push(`${where}: «по умолчанию» — да или нет`);
+  }
   return errors;
 }
 
