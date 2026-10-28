@@ -4,7 +4,18 @@
 import { describe, expect, it } from "vitest";
 import { annuityPayment, buildSchedule } from "./annuity";
 import { deductionYears } from "./features";
-import { addMonths, daysBetween, earlyNow, interestByYear, loanStatus, paymentsBy, ruralObligations } from "./loanStatus";
+import {
+  addMonths,
+  daysBetween,
+  earlyNow,
+  insuranceRefund,
+  interestByYear,
+  loanMilestones,
+  loanStatus,
+  paymentDate,
+  paymentsBy,
+  ruralObligations,
+} from "./loanStatus";
 import { bankClients, bankSource } from "../data/bankMock";
 import { demoSource } from "../data/guest";
 import { defaultConfig } from "../config/store";
@@ -126,5 +137,47 @@ describe("источники данных", () => {
     expect(ruralObligations(sokolova.loan.issueDate, today, { checkEveryMonths: 6, obligationYears: 5, registrationDays: 180 }).daysToCheck).toBe(12);
     // Лебедев: страховка заканчивается меньше чем через месяц
     expect(daysBetween(today, lebedev.insurance!.endDate)).toBeLessThan(defaultConfig.after.reminderDays);
+  });
+});
+
+describe("вехи кредита и возврат страховки", () => {
+  const market = { principal: 6_000_000, ratePct: 18.7, months: 240, issueDate: "2020-03-15" };
+
+  it("рыночная ипотека: перелом «долг > проценты» позже половины срока, половина долга — ещё позже", () => {
+    const status = loanStatus(market, "2026-10-28");
+    const m = loanMilestones({ contract: market, status, today: "2026-10-28", interestLimit: 3_000_000 });
+    const ids = m.map((x) => x.id);
+    expect(ids[0]).toBe("issue");
+    expect(ids.at(-1)).toBe("end");
+    const crossover = m.find((x) => x.id === "crossover")!;
+    const row = status.schedule.rows.find((r) => r.principal > r.interest)!;
+    expect(crossover.date).toBe(paymentDate(market.issueDate, row.month));
+    expect(status.schedule.rows[row.month - 2].principal).toBeLessThanOrEqual(status.schedule.rows[row.month - 2].interest);
+    // Под 18,7% проценты за срок больше 3 млн — лимит вычета будет исчерпан
+    expect(ids).toContain("interest-limit");
+    expect(m.find((x) => x.id === "issue")!.past).toBe(true);
+    expect(m.find((x) => x.id === "end")!.past).toBe(false);
+  });
+
+  it("сельская под 3%: долг больше процентов с первого платежа — вехи «перелом» нет, есть конец обязательств", () => {
+    const status = loanStatus(contract, "2026-10-28");
+    const m = loanMilestones({
+      contract,
+      status,
+      today: "2026-10-28",
+      rural: { checkEveryMonths: 6, obligationYears: 5, registrationDays: 180 },
+      interestLimit: 3_000_000,
+    });
+    expect(m.some((x) => x.id === "crossover")).toBe(false);
+    expect(m.find((x) => x.id === "rural")!.date).toBe("2029-01-31");
+    expect(m.some((x) => x.id === "interest-limit")).toBe(false);
+    const half = status.schedule.rows.find((r) => r.balance <= contract.principal / 2)!;
+    expect(m.find((x) => x.id === "half")!.date).toBe(paymentDate(contract.issueDate, half.month));
+  });
+
+  it("возврат страховки пропорционален неиспользованным дням полиса", () => {
+    expect(insuranceRefund(36_500, "2026-01-01", "2027-01-01", "2026-07-02").value).toBeCloseTo((36_500 * 183) / 365, 6);
+    expect(insuranceRefund(36_500, "2026-01-01", "2027-01-01", "2027-02-01").value).toBe(0);
+    expect(insuranceRefund(36_500, "2026-01-01", "2027-01-01", "2025-12-01").value).toBe(36_500);
   });
 });

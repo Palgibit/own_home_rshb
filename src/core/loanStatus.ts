@@ -217,3 +217,97 @@ export function ruralObligations(issueDate: string, today: string, rules: RuralR
     nextRegistrationCheck: registrationChecks.find((d) => d >= today) ?? null,
   };
 }
+
+// ── Вехи кредита ─────────────────────────────────────────────────
+//
+// Ключевые даты по графику: выдача, первый вычет, перелом «долг в платеже больше
+// процентов», половина долга, конец обязательств по сельской ипотеке, исчерпание
+// лимита вычета по процентам, последний платёж. Всё — из того же графика платежей.
+
+export type Milestone = {
+  id: string;
+  date: string;
+  title: string;
+  text: string;
+  past: boolean; // дата уже наступила
+};
+
+export type MilestoneInput = {
+  contract: LoanContract;
+  status: LoanStatus;
+  today: string;
+  rural?: RuralRules; // только для сельской ипотеки
+  interestLimit: number; // лимит вычета по процентам, ₽
+};
+
+export function loanMilestones({ contract, status, today, rural, interestLimit }: MilestoneInput): Milestone[] {
+  const rows = status.schedule.rows;
+  const at = (month: number) => paymentDate(contract.issueDate, month);
+  const list: Omit<Milestone, "past">[] = [
+    { id: "issue", date: contract.issueDate, title: "Кредит выдан", text: "Начало пути: первый платёж — через месяц." },
+  ];
+
+  // Вычет за год можно заявить со следующего года
+  const issueYear = Number(contract.issueDate.slice(0, 4));
+  list.push({
+    id: "deduction",
+    date: `${issueYear + 1}-01-01`,
+    title: "Можно заявить первый вычет",
+    text: `За ${issueYear} год: имущественный и по уплаченным процентам. Дальше — каждый год.`,
+  });
+
+  // Перелом: с этого месяца в платеже долг больше процентов. Если так с первого платежа — веху не показываем
+  const crossover = rows.find((r) => r.principal > r.interest);
+  if (crossover && crossover.month > 1) {
+    list.push({
+      id: "crossover",
+      date: at(crossover.month),
+      title: "Долг в платеже больше процентов",
+      text: "До этого большая часть платежа уходила банку как проценты, дальше — в счёт долга.",
+    });
+  }
+
+  const half = rows.find((r) => r.balance <= contract.principal / 2);
+  if (half) list.push({ id: "half", date: at(half.month), title: "Погашена половина долга", text: "Дальше долг тает всё быстрее." });
+
+  if (rural) {
+    list.push({
+      id: "rural",
+      date: addMonths(contract.issueDate, Math.round(rural.obligationYears * 12)),
+      title: "Обязательства по сельской ипотеке выполнены",
+      text: "Больше не нужно подтверждать работу и регистрацию — льготная ставка остаётся.",
+    });
+  }
+
+  // Лимит вычета по процентам: накопленные проценты достигли лимита
+  let acc = 0;
+  const limitRow = rows.find((r) => (acc += r.interest) >= interestLimit);
+  if (limitRow) {
+    list.push({
+      id: "interest-limit",
+      date: at(limitRow.month),
+      title: "Лимит вычета по процентам исчерпан",
+      text: "Проценты сверх лимита к вычету уже не принимают.",
+    });
+  }
+
+  list.push({ id: "end", date: status.endDate, title: "Последний платёж", text: "Кредит закрыт: остаётся снять обременение." });
+
+  return list.sort((a, b) => a.date.localeCompare(b.date)).map((m) => ({ ...m, past: m.date <= today }));
+}
+
+// ── Возврат части страховки при полном досрочном погашении ───────
+//
+// Если кредит закрыт досрочно, часть премии за неиспользованный срок полиса
+// можно вернуть: премия · неиспользованные дни / дни полиса. Условно — точную
+// сумму назовёт страховая (из неё могут вычесть расходы).
+
+export function insuranceRefund(premium: number, startDate: string, endDate: string, closeDate: string): Explained {
+  const total = Math.max(1, daysBetween(startDate, endDate));
+  const unused = Math.min(total, Math.max(0, daysBetween(closeDate, endDate)));
+  return explained("insuranceRefund", (premium * unused) / total, {
+    premium: inp(premium, "Премия за год, ₽"),
+    unused: inp(unused, "Неиспользованных дней полиса"),
+    total: inp(total, "Дней в полисе"),
+  });
+}

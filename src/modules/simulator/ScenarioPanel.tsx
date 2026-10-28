@@ -52,7 +52,21 @@ export function ScenarioPanel({ scenarios, scenario, onSelect, params, onParam, 
 
       {scenario && scenario.params.length > 0 && (
         <div className="form-grid">
-          {scenario.params.map((p) => (
+          {scenario.params.map((p) =>
+            p.kind === "toggle" ? (
+              // Галочка: в формулах сценария 1 — включено, 0 — выключено
+              <label key={p.id} className="check scenario-toggle">
+                <input
+                  type="checkbox"
+                  checked={(params[p.id] ?? p.default) === 1}
+                  onChange={(e) => onParam(p.id, e.target.checked ? 1 : 0)}
+                />
+                <span className="check-text">
+                  <span className="check-label">{p.label}</span>
+                  {p.hint && <span className="check-hint">{p.hint}</span>}
+                </span>
+              </label>
+            ) : (
             <NumberField
               key={p.id}
               label={p.label}
@@ -65,7 +79,8 @@ export function ScenarioPanel({ scenarios, scenario, onSelect, params, onParam, 
               slider
               onChange={(v) => onParam(p.id, v)}
             />
-          ))}
+            ),
+          )}
         </div>
       )}
 

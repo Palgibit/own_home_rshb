@@ -8,36 +8,25 @@ import {
   type GlobalParam,
   type LoanProgram,
   type PlanItem,
-  type SimulatorDefaults,
 } from "../../config/schema";
 import { NumberField } from "../../ui/NumberField";
 import { JsonEditor, optional, SelectField, TextField } from "./fields";
 import type { Edit } from "./AdminPage";
-
-const SIM_LABELS: Record<Exclude<keyof SimulatorDefaults, "program" | "planExample">, [string, string?]> = {
-  price: ["Стоимость жилья", "₽"],
-  downPayment: ["Первоначальный взнос", "₽"],
-  years: ["Срок", "лет"],
-  income: ["Доход семьи", "₽/мес"],
-  expenses: ["Обязательные расходы", "₽/мес"],
-  compareAmount: ["«Досрочка или вклад»: сумма", "₽"],
-  compareMonth: ["… через сколько месяцев", "мес"],
-  compareHorizonMonths: ["… горизонт сравнения", "мес"],
-  coffeeExtra: ["«Чашка кофе»: доплата", "₽/мес"],
-  coffeeMax: ["… максимум ползунка", "₽/мес"],
-  ownFunds: ["«Город или село»: свои средства", "₽"],
-  familySize: ["… человек в семье"],
-};
+import { SIM_LABELS } from "./diff";
+import { defaultConfig } from "../../config/store";
 
 export function ParamsTab({ draft, edit }: { draft: AppConfig; edit: Edit }) {
   const groups = [...new Set(draft.params.map((p) => p.group))];
   // По индексу, а не по id: пока админ печатает, id может временно совпасть с другим
   const setParam = (index: number, patch: Partial<GlobalParam>) => edit((d) => Object.assign(d.params[index], patch));
+  // «Что изменено»: значение по умолчанию из default.json — для подсветки и кнопки «↺»
+  const defaults = new Map(defaultConfig.params.map((p) => [p.id, p.value]));
 
   return (
     <div className="admin-stack">
       <p className="note">
-        Значения сразу участвуют в расчётах всех трёх модулей. В формулах параметр пишется по имени (<code>ruralRate</code>),
+        Значения сразу участвуют в расчётах всех трёх модулей. Параметры, которые отличаются от значений по умолчанию,
+        подсвечены жёлтым. В формулах параметр пишется по имени (<code>ruralRate</code>),
         в текстах навигатора и модуля 3 — в фигурных скобках (<code>{"{ruralRate}"}</code>).
       </p>
 
@@ -47,13 +36,29 @@ export function ParamsTab({ draft, edit }: { draft: AppConfig; edit: Edit }) {
           {draft.params.map(
             (p, index) =>
               p.group === group && (
-              <div key={index} className="admin-param">
+              <div
+                key={index}
+                className={`admin-param${defaults.has(p.id) && defaults.get(p.id) !== p.value ? " is-changed" : ""}`}
+              >
                 <div className="admin-param-main">
                   <TextField label="Название" value={p.label} onChange={(v) => setParam(index, { label: v })} hint={<code>{p.id}</code>} />
                   <NumberField label="Значение" unit={p.unit} value={p.value} onChange={(v) => setParam(index, { value: v })} />
                   <TextField label="Единица" value={p.unit} onChange={(v) => setParam(index, { unit: optional(v) })} />
                   <TextField label="Подсказка" value={p.hint} onChange={(v) => setParam(index, { hint: optional(v) })} />
                 </div>
+                {defaults.has(p.id) && defaults.get(p.id) !== p.value && (
+                  <p className="admin-default">
+                    Изменено. По умолчанию: {defaults.get(p.id)!.toLocaleString("ru-RU")} {p.unit}
+                    <button
+                      type="button"
+                      className="admin-link-button"
+                      title="Вернуть значение по умолчанию"
+                      onClick={() => setParam(index, { value: defaults.get(p.id)! })}
+                    >
+                      ↺ вернуть
+                    </button>
+                  </p>
+                )}
                 <button
                   type="button"
                   className="admin-remove"

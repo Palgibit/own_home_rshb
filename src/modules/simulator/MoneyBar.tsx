@@ -41,11 +41,15 @@ export function StackBar({ label, parts, width = 1, legend = true }: { label: st
 // Части полной цены покупки. Тело кредита — стоимость − взнос: премия первого года,
 // даже если она в кредите, учтена в «страховке», а не в теле.
 function moneyParts(m: Metrics, ownMoney: number, loanBase: number): StackPart[] {
+  // Переплата по сценарию вне ипотеки: проценты другого кредита (ремонт) и разовые расходы (переоформление)
+  const otherInterest = m.otherSchedule?.totalInterest ?? 0;
+  const otherBody = m.otherSchedule ? m.otherSchedule.totalPaid - otherInterest : 0;
   return [
     { label: "Свои деньги сразу", value: ownMoney, color: "var(--chart-4)" },
     { label: "Тело кредита", value: loanBase, color: "var(--chart-1)" },
-    { label: "Проценты", value: m.interest + m.otherOverpayment, color: "var(--chart-2)" },
+    { label: "Проценты", value: m.interest + otherInterest, color: "var(--chart-2)" },
     { label: "Страховка", value: m.insurance?.total ?? 0, color: "var(--chart-3)" },
+    { label: "Другой кредит и расходы сценария", value: otherBody + m.otherOverpayment - otherInterest, color: "var(--chart-5)" },
   ];
 }
 
@@ -65,7 +69,7 @@ export function MoneyBar({ before, after, ownMoney, loanBase }: Props) {
     : [{ name: "Ваш кредит", parts: moneyParts(before, ownMoney, loanBase) }];
   const totals = rows.map((r) => r.parts.reduce((s, p) => s + p.value, 0));
   const max = Math.max(...totals, 1);
-  const hasOther = (after ?? before).otherOverpayment > 0 || before.otherOverpayment > 0;
+  const hasOther = Boolean((after ?? before).otherSchedule);
 
   return (
     <section className="panel" aria-labelledby="money-heading">
@@ -81,7 +85,7 @@ export function MoneyBar({ before, after, ownMoney, loanBase }: Props) {
             {formatRub(Math.abs(totals[1] - totals[0]))} к варианту без изменений)
           </>
         )}
-        .{hasOther && " Проценты включают переплату по другому кредиту сценария."}
+        .{hasOther && " Проценты включают проценты по другому кредиту."}
       </p>
       <div className="money-rows">
         {rows.map((r, k) => (
@@ -104,7 +108,7 @@ export function MoneyBar({ before, after, ownMoney, loanBase }: Props) {
           </tr>
         </thead>
         <tbody>
-          {rows[0].parts.map((p, i) => (
+          {rows[0].parts.map((p, i) => rows.every((r) => r.parts[i].value < 0.5) ? null : (
             <tr key={p.label}>
               <th>
                 <span className="swatch" style={{ background: p.color }} aria-hidden="true" />

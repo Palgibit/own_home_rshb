@@ -513,3 +513,63 @@ a.service-chip:hover {
     animation-duration: 1ms;
   }
 }
+
+/* Сводка маршрута: срок и расходы */
+.nav-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 0;
+  font-size: 14px;
+}
+
+.nav-summary b {
+  font-variant-numeric: tabular-nums;
+}
+
+.nav-summary-note {
+  flex-basis: 100%;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+/* Срок и расходы шага, «что подготовить» */
+.step-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.step-docs summary,
+.nav-docs summary {
+  cursor: pointer;
+}
+
+.step-docs summary {
+  color: var(--color-brand);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.step-docs ul,
+.nav-docs-list {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  color: #4c5a4f;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.nav-docs {
+  margin-top: 16px;
+}
+
+.nav-docs summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}

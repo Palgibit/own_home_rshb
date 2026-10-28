@@ -4,15 +4,18 @@
 import { useRef, useState } from "react";
 import type { AppConfig } from "../../config/schema";
 import { exportConfig, importConfig } from "../../config/store";
+import { ChangesList } from "./ChangesList";
+import type { ConfigChange } from "./diff";
 
 type Props = {
   saved: AppConfig;
+  fromDefault: ConfigChange[]; // отличия сохранённого конфига от умолчаний
   dirty: boolean;
   onImport: (config: AppConfig) => void; // загрузить в черновик
   onReset: () => void;
 };
 
-export function FileTab({ saved, dirty, onImport, onReset }: Props) {
+export function FileTab({ saved, fromDefault, dirty, onImport, onReset }: Props) {
   const input = useRef<HTMLInputElement>(null);
   const [importErrors, setImportErrors] = useState<string[]>([]);
   const [imported, setImported] = useState<string | null>(null);
@@ -43,6 +46,14 @@ export function FileTab({ saved, dirty, onImport, onReset }: Props) {
 
   return (
     <div className="admin-stack">
+      <section className="panel">
+        <h2 className="panel-title">Отличия от умолчаний</h2>
+        <p className="scenario-description">
+          Что в сохранённых настройках не так, как в исходном конфиге. Кнопка «Сбросить к умолчаниям» ниже уберёт всё это.
+        </p>
+        <ChangesList changes={fromDefault} empty="Настройки совпадают с умолчаниями." />
+      </section>
+
       <section className="panel">
         <h2 className="panel-title">Экспорт</h2>
         <p className="scenario-description">Скачать сохранённые настройки одним JSON-файлом.</p>

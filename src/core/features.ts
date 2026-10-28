@@ -3,6 +3,7 @@
 
 import { annuityPayment, buildSchedule, interestBetween, type Loan, type ScheduleEvents } from "./annuity";
 import { explained, inp, type Explained } from "./explain";
+import { purchaseWarnings, type PurchaseLimits, type PurchaseWarnings } from "./purchase";
 
 // ── Фича 1. Досрочка или вклад ────────────────────────────────────
 //
@@ -180,105 +181,67 @@ export function realPaymentAt(payment: number, inflationPct: number, years: numb
   });
 }
 
-// ── Фича 2. Город или село ───────────────────────────────────────
+// ── Фича 2. Город или село: сравниватель двух вариантов ──────────
 //
-// «За те же деньги»: квартира в городе по той же цене, что дом с участком.
-// Площадь квартиры = цена / цена за м². Кредит = цена − свои средства,
-// но не больше лимита программы. Если своих денег не хватает на взнос
-// или кредит упирается в лимит — показываем, сколько не хватает.
+// Посетитель сам задаёт у каждого варианта цену, площадь, кредит, ставку,
+// срок и содержание жилья в месяц. Взнос = цена − кредит. В бюджет входит
+// содержание: в доме коммуналка и обслуживание обычно дороже, чем в квартире.
+// Предупреждения — те же, что в симуляторе: взнос ниже минимума программы,
+// кредит выше лимита.
 
 export type HomeOptionInput = {
   price: number;
   area: number; // м²
-  ownFunds: number;
-  downPct: number; // минимальный взнос, %
+  loan: number; // сумма кредита, ₽
   ratePct: number;
-  maxLoan: number; // лимит кредита (Infinity — без лимита)
   months: number;
+  upkeep: number; // содержание жилья, ₽/мес
+  limits: PurchaseLimits; // минимальный взнос и лимит кредита программы
   income: number;
   expenses: number;
   familySize: number;
 };
 
 export type HomeOption = {
-  price: number;
-  area: number;
-  ratePct: number;
-  loan: Explained;
+  downPayment: Explained;
   payment: Explained;
   overpayment: Explained;
   budget: Explained;
   areaPerPerson: Explained;
-  shortfall: number; // сколько не хватает своих денег, ₽ (0 — хватает)
+  warnings: PurchaseWarnings & { loanOverPrice?: boolean };
 };
 
 export function homeOption(o: HomeOptionInput): HomeOption {
-  const minDown = (o.price * o.downPct) / 100;
-  const loanValue = Math.max(0, Math.min(o.price - o.ownFunds, o.maxLoan));
-  // Не хватает либо на минимальный взнос, либо сверх лимита кредита
-  const shortfall = Math.max(0, minDown - o.ownFunds, o.price - o.ownFunds - o.maxLoan);
-  const P = annuityPayment(loanValue, o.ratePct, o.months);
+  const loan = Math.max(0, Math.min(o.loan, o.price));
+  const down = o.price - loan;
+  const P = annuityPayment(loan, o.ratePct, o.months);
+  const warnings: HomeOption["warnings"] = purchaseWarnings(o.price, down, loan, o.limits);
+  if (o.loan > o.price) warnings.loanOverPrice = true;
   return {
-    price: o.price,
-    area: o.area,
-    ratePct: o.ratePct,
-    shortfall,
-    loan: explained("homeLoan", loanValue, {
+    warnings,
+    downPayment: explained("homeDown", down, {
       price: inp(o.price, "Цена, ₽"),
-      own: inp(o.ownFunds, "Свои средства, ₽"),
-      limit: inp(o.maxLoan, "Лимит кредита, ₽"),
+      loan: inp(loan, "Сумма кредита, ₽"),
     }),
     payment: explained("annuity", P, {
-      S: inp(loanValue, "Сумма кредита, ₽"),
+      S: inp(loan, "Сумма кредита, ₽"),
       rate: inp(o.ratePct, "Ставка, % годовых"),
       n: inp(o.months, "Срок, мес"),
     }),
-    overpayment: explained("overpayment", P * o.months - loanValue, {
+    overpayment: explained("overpayment", P * o.months - loan, {
       P: inp(P, "Платёж, ₽/мес"),
       n: inp(o.months, "Срок, мес"),
-      S: inp(loanValue, "Сумма кредита, ₽"),
+      S: inp(loan, "Сумма кредита, ₽"),
     }),
-    budget: explained("budget", o.income - o.expenses - P, {
+    budget: explained("homeBudget", o.income - o.expenses - P - o.upkeep, {
       income: inp(o.income, "Доход семьи, ₽/мес"),
       expenses: inp(o.expenses, "Обязательные расходы, ₽/мес"),
       P: inp(P, "Платёж по ипотеке, ₽/мес"),
+      upkeep: inp(o.upkeep, "Содержание жилья, ₽/мес"),
     }),
     areaPerPerson: explained("areaPerPerson", o.area / Math.max(1, o.familySize), {
       area: inp(o.area, "Площадь, м²"),
       people: inp(o.familySize, "Человек в семье"),
-    }),
-  };
-}
-
-export type CityVsVillageInput = {
-  ownFunds: number;
-  income: number;
-  expenses: number;
-  familySize: number;
-  months: number;
-  city: { pricePerM2: number; downPct: number; ratePct: number };
-  village: { price: number; area: number; downPct: number; ratePct: number; maxLoan: number };
-};
-
-export function cityVsVillage(input: CityVsVillageInput): { city: HomeOption; village: HomeOption } {
-  const common = {
-    ownFunds: input.ownFunds,
-    months: input.months,
-    income: input.income,
-    expenses: input.expenses,
-    familySize: input.familySize,
-  };
-  const { village: v, city: c } = input;
-  return {
-    village: homeOption({ ...common, price: v.price, area: v.area, downPct: v.downPct, ratePct: v.ratePct, maxLoan: v.maxLoan }),
-    // Квартира по той же цене: площадь = цена / цена за м²
-    city: homeOption({
-      ...common,
-      price: v.price,
-      area: v.price / c.pricePerM2,
-      downPct: c.downPct,
-      ratePct: c.ratePct,
-      maxLoan: Infinity,
     }),
   };
 }

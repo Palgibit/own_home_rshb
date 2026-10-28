@@ -3,6 +3,8 @@ import { annuityPayment } from "../../core/annuity";
 import { validateConfig, type ScenarioDef } from "../../config/schema";
 import { defaultConfig, importConfig, exportConfig } from "../../config/store";
 import { previewFormula, previewScenario, testVariables } from "./preview";
+import { diffConfig } from "./diff";
+import { copyScenario } from "./ScenariosTab";
 
 const scenario = (id: string) => defaultConfig.scenarios.find((s) => s.id === id)!;
 
@@ -80,5 +82,31 @@ describe("админка: новый сценарий без кода", () => {
   it("импорт битого файла — ошибки, а не исключение", () => {
     expect(importConfig("{ не json")).toEqual({ errors: ["Файл не похож на JSON"] });
     expect("errors" in importConfig('{"version": 2}')).toBe(true);
+  });
+});
+
+describe("что изменено и копия сценария", () => {
+  it("diffConfig находит изменённый параметр, добавленный сценарий и удалённый шаг", () => {
+    const next = structuredClone(defaultConfig);
+    next.params.find((p) => p.id === "ruralRate")!.value = 2.5;
+    next.scenarios.push(childBirth);
+    next.navigator.steps.splice(0, 1);
+    const changes = diffConfig(defaultConfig, next);
+    expect(changes).toContainEqual({ section: "Параметры", label: "Ставка сельской ипотеки", kind: "changed", before: "3 %", after: "2,5 %" });
+    expect(changes).toContainEqual({ section: "Сценарии", label: "Рождение ребёнка", kind: "added" });
+    expect(changes.some((c) => c.section === "Навигатор, шаги" && c.kind === "removed")).toBe(true);
+    expect(diffConfig(defaultConfig, structuredClone(defaultConfig))).toEqual([]);
+  });
+
+  it("копия сценария получает уникальный id и проходит проверку", () => {
+    const config = structuredClone(defaultConfig);
+    const first = copyScenario(scenario("rent-out"), config.scenarios);
+    config.scenarios.push(first);
+    const second = copyScenario(scenario("rent-out"), config.scenarios);
+    config.scenarios.push(second);
+    expect(first.id).toBe("rent-out-copy");
+    expect(second.id).toBe("rent-out-copy-2");
+    expect(second.title).toBe("Сдача квартиры в аренду (копия)");
+    expect(validateConfig(config)).toEqual([]);
   });
 });

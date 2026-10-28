@@ -78,8 +78,8 @@ export function MyLoanBlock({ data, status }: { data: LoanData; status: LoanStat
                   <tr>
                     <th>Дата</th>
                     <th>Платёж</th>
-                    <th>Проценты</th>
-                    <th>Долг</th>
+                    <th>Проценты банку</th>
+                    <th>В счёт долга</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -94,6 +94,10 @@ export function MyLoanBlock({ data, status }: { data: LoanData; status: LoanStat
                 </tbody>
               </table>
             </div>
+            <p className="field-hint">
+              Проценты — плата банку за месяц пользования кредитом: остаток × ставка / 12. В счёт долга — остальная
+              часть платежа, на неё уменьшается остаток.
+            </p>
           </div>
         )}
 

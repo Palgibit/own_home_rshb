@@ -47,6 +47,9 @@ export type StepDef = {
   variants?: StepVariant[]; // первая подходящая побеждает
   services?: string[]; // id сервисов экосистемы из конфига
   calcLink?: StepLink;
+  days?: [number, number]; // ориентировочный срок шага, дней: от и до
+  costs?: string[]; // id расходов на сделку из config.dealCosts (оценка, госпошлина…)
+  docs?: string[]; // что подготовить
 };
 
 // Типовой сценарий: готовый набор ответов. Он же — столбец матрицы «шаг × сценарий»
@@ -156,6 +159,37 @@ export function buildRoute(nav: NavigatorDef, answers: Answers): RouteStep[] {
     .filter((x): x is { route: RouteStep; index: number } => x.route !== null)
     .sort((a, b) => (stageOrder.get(a.route.step.stage) ?? 0) - (stageOrder.get(b.route.step.stage) ?? 0) || a.index - b.index)
     .map((x) => x.route);
+}
+
+// ── Сводка маршрута: срок, расходы, документы ──────────────────
+//
+// Срок — сумма сроков шагов: ориентир «сверху», часть шагов можно делать параллельно.
+// Расходы — сумма расходов на сделку, на которые ссылаются шаги; каждый расход один раз.
+// Документы — без повторов, в порядке маршрута.
+
+export type RouteSummary = {
+  daysMin: number;
+  daysMax: number;
+  costs: { id: string; label: string; amount: number }[];
+  costTotal: number;
+  docs: string[];
+};
+
+// Документы шага без пустых строк (пустая строка остаётся, пока админ набирает список)
+export function stepDocs(step: StepDef): string[] {
+  return (step.docs ?? []).map((d) => d.trim()).filter(Boolean);
+}
+
+export function routeSummary(route: RouteStep[], dealCosts: { id: string; label: string; amount: number }[]): RouteSummary {
+  const costIds = new Set(route.flatMap((r) => r.step.costs ?? []));
+  const costs = dealCosts.filter((c) => costIds.has(c.id)).map(({ id, label, amount }) => ({ id, label, amount }));
+  return {
+    daysMin: route.reduce((s, r) => s + (r.step.days?.[0] ?? 0), 0),
+    daysMax: route.reduce((s, r) => s + (r.step.days?.[1] ?? 0), 0),
+    costs,
+    costTotal: costs.reduce((s, c) => s + c.amount, 0),
+    docs: [...new Set(route.flatMap((r) => stepDocs(r.step)))],
+  };
 }
 
 // ── Матрица «шаг × сценарий» ────────────────────────────────────

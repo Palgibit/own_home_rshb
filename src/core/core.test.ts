@@ -3,16 +3,16 @@ import { annuityPayment, buildSchedule, termForPayment, type Loan } from "./annu
 import { checkFormula, evaluateFormula } from "./evaluate";
 import {
   breakEvenDepositRate,
-  cityVsVillage,
   coffee,
   depositVsEarly,
   extraForTarget,
+  homeOption,
   interestDeduction,
   propertyDeduction,
   realPaymentAt,
   realPayments,
 } from "./features";
-import { applyScenario, computeMetrics, pdnLevel } from "./scenarios";
+import { applyScenario, computeMetrics, pdnLevel, scenarioInsights } from "./scenarios";
 import { comparePlan, expandPlan, type PlanItem } from "./plan";
 import {
   effectiveRate,
@@ -200,10 +200,10 @@ describe("конфиг по умолчанию", () => {
     expect(validateConfig(broken).join()).toContain("unknownVar");
   });
 
-  const run = (id: string, earlyMode: "term" | "payment" = "term") => {
+  const run = (id: string, earlyMode: "term" | "payment" = "term", override: Record<string, number> = {}, loan = rural) => {
     const scenario = defaultConfig.scenarios.find((s) => s.id === id)!;
-    const params = Object.fromEntries(scenario.params.map((p) => [p.id, p.default]));
-    return applyScenario({ scenario, loan: rural, household, params, globals: globalValues(defaultConfig), earlyMode });
+    const params = { ...Object.fromEntries(scenario.params.map((p) => [p.id, p.default])), ...override };
+    return applyScenario({ scenario, loan, household, params, globals: globalValues(defaultConfig), earlyMode });
   };
 
   it("досрочка: есть альтернативный режим для сравнения", () => {
@@ -216,15 +216,55 @@ describe("конфиг по умолчанию", () => {
   it("ремонт: второй платёж уменьшает бюджет и повышает ПДН", () => {
     const r = run("repair-loan");
     const repair = annuityPayment(700_000, 20, 60);
-    expect(r.effects.extraPayment!.value).toBeCloseTo(repair, 6);
+    expect(r.after.otherPayment).toBeCloseTo(repair, 6);
     expect(r.before.budget.value - r.after.budget.value).toBeCloseTo(repair, 6);
     expect(r.after.pdn.value).toBeGreaterThan(r.before.pdn.value);
+  });
+
+  it("ремонт: у второго кредита свой график на nr месяцев, его проценты — в переплате", () => {
+    const r = run("repair-loan");
+    const other = r.after.otherSchedule!;
+    expect(other.months).toBe(60);
+    expect(other.rows[59].balance).toBeCloseTo(0, 2);
+    expect(r.after.otherOverpayment).toBeCloseTo(other.totalInterest, 6);
+    expect(other.totalInterest).toBeCloseTo(annuityPayment(700_000, 20, 60) * 60 - 700_000, 2);
+    // Ипотека при этом не меняется
+    expect(r.after.months.value).toBe(r.before.months.value);
   });
 
   it("аренда: чистый доход = аренда·(1 − налог) − расходы − простой", () => {
     const r = run("rent-out");
     expect(r.effects.extraIncome!.value).toBeCloseTo(35_000 * 0.96 - 4_000 - 35_000 * 0.08, 6);
     expect(r.effects.extraIncome!.inputs.rent.label).toBe("Арендная плата");
+  });
+
+  it("аренда в погашение: срок короче, бюджет тот же, что без аренды", () => {
+    const spend = run("rent-out");
+    const toLoan = run("rent-out", "term", { toLoan: 1 });
+    expect(spend.after.months.value).toBe(spend.before.months.value);
+    expect(toLoan.after.months.value).toBeLessThan(toLoan.before.months.value);
+    expect(toLoan.after.budget.value).toBeCloseTo(toLoan.before.budget.value, 6);
+    expect(toLoan.after.overpayment.value).toBeLessThan(toLoan.before.overpayment.value);
+    // Плашка: доход покрывает долю платежа
+    const net = 35_000 * 0.96 - 4_000 - 35_000 * 0.08;
+    expect(scenarioInsights(spend).coverage!.value).toBeCloseTo((net / spend.before.payment.value) * 100, 6);
+  });
+
+  it("рефинансирование: платёж падает, расходы окупаются за cost / снижение платежа", () => {
+    const market: Loan = { principal: 6_000_000, ratePct: 18.7, months: 240 };
+    const r = run("refinance", "term", {}, market);
+    expect(r.after.payment.value).toBeLessThan(r.before.payment.value);
+    const saving = r.before.payment.value - r.after.payment.value;
+    expect(scenarioInsights(r).payback!.value).toBe(Math.ceil(30_000 / saving));
+    expect(r.after.overpayment.value).toBeLessThan(r.before.overpayment.value);
+  });
+
+  it("доход снизился: бюджет в минусе — подушка = нехватка · месяцы", () => {
+    const r = run("income-drop", "term", { drop: 100, dropMonths: 6 });
+    expect(r.after.budget.value).toBeLessThan(0);
+    expect(scenarioInsights(r).cushion!.value).toBeCloseTo(-r.after.budget.value * 6, 6);
+    // Если доход упал немного, подушка не нужна
+    expect(scenarioInsights(run("income-drop", "term", { drop: 10 })).cushion).toBeUndefined();
   });
 
   it("потеря льготы: платёж и переплата растут", () => {
@@ -239,30 +279,35 @@ describe("реальный платёж и город/село", () => {
     expect(realPaymentAt(10_000, 10, 2).value).toBeCloseTo(realPayments(10_000, 10, 3)[2].real, 6);
   });
 
-  const input = {
-    ownFunds: 2_200_000,
+  const home = {
+    price: 7_000_000,
+    area: 110,
+    loan: 4_800_000,
+    ratePct: 3,
+    months: 240,
+    upkeep: 12_000,
+    limits: { minDownPct: 30.01, maxLoan: 6_000_000 },
     income: 150_000,
     expenses: 60_000,
     familySize: 3,
-    months: 240,
-    city: { pricePerM2: 180_000, downPct: 20, ratePct: 18.7 },
-    village: { price: 7_000_000, area: 110, downPct: 30.01, ratePct: 3, maxLoan: 6_000_000 },
   };
 
-  it("за ту же цену в селе больше метров и меньше платёж", () => {
-    const { city, village } = cityVsVillage(input);
-    expect(city.area).toBeCloseTo(7_000_000 / 180_000, 6);
-    expect(village.areaPerPerson.value).toBeCloseTo(110 / 3, 6);
-    expect(village.loan.value).toBe(4_800_000);
-    expect(village.payment.value).toBeCloseTo(annuityPayment(4_800_000, 3, 240), 6);
-    expect(village.payment.value).toBeLessThan(city.payment.value);
-    expect(village.shortfall).toBe(0);
+  it("сравниватель: взнос = цена − кредит, бюджет учитывает содержание", () => {
+    const o = homeOption(home);
+    expect(o.downPayment.value).toBe(2_200_000);
+    expect(o.areaPerPerson.value).toBeCloseTo(110 / 3, 6);
+    expect(o.payment.value).toBeCloseTo(annuityPayment(4_800_000, 3, 240), 6);
+    expect(o.budget.value).toBeCloseTo(150_000 - 60_000 - o.payment.value - 12_000, 6);
+    expect(o.warnings).toEqual({});
   });
 
-  it("показывает нехватку на взнос и сверх лимита", () => {
-    const poor = cityVsVillage({ ...input, ownFunds: 500_000 }).village;
-    expect(poor.loan.value).toBe(6_000_000); // упёрлись в лимит
-    expect(poor.shortfall).toBeCloseTo(7_000_000 * 0.3001 - 500_000, 6);
+  it("сравниватель: предупреждает о малом взносе, лимите и кредите больше цены", () => {
+    const o = homeOption({ ...home, loan: 6_500_000 });
+    expect(o.warnings.downTooLow).toBeDefined();
+    expect(o.warnings.overLimit?.limit).toBe(6_000_000);
+    const over = homeOption({ ...home, loan: 8_000_000 });
+    expect(over.warnings.loanOverPrice).toBe(true);
+    expect(over.downPayment.value).toBe(0);
   });
 });
 

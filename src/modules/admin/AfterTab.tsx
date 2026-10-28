@@ -61,6 +61,13 @@ export function AfterTab({ draft, edit }: { draft: AppConfig; edit: Edit }) {
           // Пустые строки не выкидываем сразу — иначе не напечатать новую строку; их не пропустит проверка
           onChange={(v) => setAfter((x) => void (x.taxSteps = v.split("\n")))}
         />
+        <TextField
+          label="Когда кредит закроется: шаги (по одному в строке)"
+          rows={Math.max(4, a.closingSteps.length + 1)}
+          value={a.closingSteps.join("\n")}
+          hint={hint}
+          onChange={(v) => setAfter((x) => void (x.closingSteps = v.split("\n")))}
+        />
       </section>
 
       <section className="panel">

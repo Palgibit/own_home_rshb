@@ -18,6 +18,7 @@ import {
   type StepVariant,
 } from "../../core/navigator";
 import type { AppConfig } from "../../config/schema";
+import { NumberField } from "../../ui/NumberField";
 import { plural } from "../../ui/format";
 import { JsonEditor, SelectField, TextField } from "./fields";
 import { MatrixView } from "./MatrixView";
@@ -340,9 +341,73 @@ function StepEditor({ nav, draft, step, set, onRemove }: StepEditorProps) {
         />
       </section>
 
+      <section className="panel">
+        <h2 className="panel-title">Срок, расходы, документы</h2>
+        <p className="scenario-description">
+          Из них навигатор собирает сводку «≈ N мес на весь путь, ≈ M ₽ расходов» и общий список документов.
+        </p>
+        <div className="admin-grid">
+          <NumberField
+            label="Срок шага: от"
+            unit="дн"
+            min={0}
+            value={step.days?.[0] ?? 0}
+            onChange={(v) => set((x) => setDays(x, v, x.days?.[1] ?? v))}
+          />
+          <NumberField
+            label="до"
+            unit="дн"
+            min={0}
+            value={step.days?.[1] ?? 0}
+            onChange={(v) => set((x) => setDays(x, x.days?.[0] ?? 0, v))}
+          />
+        </div>
+        <fieldset className="admin-checks">
+          <legend className="field-label">Расходы на сделку (суммы — на вкладке «Ставка и расходы»)</legend>
+          {draft.dealCosts.map((c) => (
+            <label key={c.id}>
+              <input
+                type="checkbox"
+                checked={(step.costs ?? []).includes(c.id)}
+                onChange={(e) =>
+                  set((x) => {
+                    const on = new Set(x.costs ?? []);
+                    if (e.target.checked) on.add(c.id);
+                    else on.delete(c.id);
+                    const list = draft.dealCosts.map((d) => d.id).filter((id) => on.has(id));
+                    if (list.length) x.costs = list;
+                    else delete x.costs;
+                  })
+                }
+              />{" "}
+              {c.label}
+            </label>
+          ))}
+        </fieldset>
+        <TextField
+          label="Что подготовить — по документу в строке"
+          rows={4}
+          value={(step.docs ?? []).join("\n")}
+          onChange={(v) =>
+            set((x) => {
+              // Пустые строки при вводе не сохраняем, чтобы проверка конфига не ругалась на каждый Enter
+              const list = v.split("\n").filter((d, i, all) => d.trim() || i === all.length - 1);
+              if (list.some((d) => d.trim())) x.docs = list;
+              else delete x.docs;
+            })
+          }
+        />
+      </section>
+
       <StepPreview nav={nav} step={step} />
     </div>
   );
+}
+
+// Срок шага: оба нуля — срока нет
+function setDays(step: StepDef, min: number, max: number) {
+  if (min === 0 && max === 0) delete step.days;
+  else step.days = [min, max];
 }
 
 // ── Условие: по каждому вопросу — галочки вариантов ──────────────

@@ -518,9 +518,8 @@
   border-radius: 16px;
 }
 
-.home-card:last-child {
-  border-color: #cfe3c8;
-  background: #f7fbf5;
+.home-verdict {
+  margin-top: 14px;
 }
 
 .home-title {
@@ -979,4 +978,21 @@
   .chart-head .segmented {
     flex-basis: 100%;
   }
+}
+
+/* Выводы сценария: покрытие платежа, окупаемость, подушка */
+.insights {
+  display: grid;
+  gap: 8px;
+}
+
+/* Таблица под графиком «по месяцам»: сотни строк — прокрутка внутри блока */
+.table-tall {
+  max-height: 360px;
+  overflow: auto;
+}
+
+/* Галочка среди ползунков сценария — на всю ширину */
+.scenario-toggle {
+  grid-column: 1 / -1;
 }

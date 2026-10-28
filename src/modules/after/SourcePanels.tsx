@@ -1,11 +1,11 @@
 // Откуда данные: у гостя — переключатель «демо / свой кредит» и форма ввода,
 // у клиента — плашка «данные из банка» с кнопкой выхода.
 
-import { useId } from "react";
 import { useConfig } from "../../config/ConfigContext";
 import { PROGRAMS, PROGRAM_RATE_PARAM, type LoanProgram } from "../../config/schema";
 import type { LoanData } from "../../data/DataSource";
 import type { GuestLoanInput } from "../../data/guest";
+import { DateField } from "../../ui/DateField";
 import { NumberField } from "../../ui/NumberField";
 import { formatMonths, formatRub } from "../../ui/format";
 
@@ -15,7 +15,6 @@ type GuestProps = { value: GuestState; onChange: (next: GuestState) => void; tod
 
 export function GuestSourcePanel({ value, onChange, today }: GuestProps) {
   const { config, globals } = useConfig();
-  const dateId = useId();
   const demo = config.after.guestDemo;
   const input = value.input;
   const set = (patch: Partial<GuestLoanInput>) => onChange({ ...value, input: { ...input, ...patch } });
@@ -62,22 +61,7 @@ export function GuestSourcePanel({ value, onChange, today }: GuestProps) {
             <NumberField label="Сумма кредита" unit="₽" value={input.principal} min={1} max={100_000_000} onChange={(v) => set({ principal: v })} />
             <NumberField label="Ставка по договору" unit="%" value={input.ratePct} min={0} max={40} onChange={(v) => set({ ratePct: v })} />
             <NumberField label="Срок" unit="лет" value={input.years} min={1} max={35} onChange={(v) => set({ years: v })} />
-            <div className="field">
-              <label className="field-label" htmlFor={dateId}>
-                Дата выдачи
-              </label>
-              <div className="field-box">
-                <input
-                  id={dateId}
-                  className="field-input"
-                  type="date"
-                  max={today}
-                  value={input.issueDate}
-                  // Пустое или неполное значение пропускаем, чтобы расчёт не сломался
-                  onChange={(e) => /^\d{4}-\d{2}-\d{2}$/.test(e.target.value) && set({ issueDate: e.target.value })}
-                />
-              </div>
-            </div>
+            <DateField label="Дата выдачи" value={input.issueDate} max={today} onChange={(v) => set({ issueDate: v })} />
             <NumberField
               label="Стоимость жилья"
               unit="₽"

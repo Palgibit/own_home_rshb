@@ -25,7 +25,11 @@ export type EffectKey =
   | "rateMonth" // с какого месяца действует новая ставка
   | "extraIncome" // дополнительный доход, ₽/мес
   | "extraPayment" // платёж по другому кредиту, ₽/мес
-  | "extraOverpayment"; // переплата по другому кредиту, ₽
+  | "extraOverpayment" // переплата по другому кредиту, ₽
+  | "loan2Amount" // другой кредит: сумма, ₽ — ядро само построит его график
+  | "loan2Rate" // другой кредит: ставка, %
+  | "loan2Months" // другой кредит: срок, мес
+  | "durationMonths"; // сколько длится сценарий, мес (для «подушки безопасности»)
 
 export const EFFECTS: Record<EffectKey, string> = {
   earlyAmount: "Разовый досрочный платёж, ₽",
@@ -36,11 +40,16 @@ export const EFFECTS: Record<EffectKey, string> = {
   extraIncome: "Дополнительный доход, ₽/мес",
   extraPayment: "Платёж по другому кредиту, ₽/мес",
   extraOverpayment: "Переплата по другому кредиту, ₽",
+  loan2Amount: "Другой кредит: сумма, ₽",
+  loan2Rate: "Другой кредит: ставка, %",
+  loan2Months: "Другой кредит: срок, мес",
+  durationMonths: "Сколько длится сценарий, мес",
 };
 
 export type ParamDef = {
   id: string; // имя переменной в формулах
   label: string;
+  kind?: "number" | "toggle"; // toggle — галочка: в формулах 1 (включено) или 0
   unit?: string;
   min?: number;
   max?: number;
@@ -96,6 +105,8 @@ export type Metrics = {
   schedule: Schedule;
   interest: number; // проценты по ипотеке за весь срок
   otherOverpayment: number; // переплата по другим кредитам сценария
+  otherPayment: number; // платёж по другим кредитам сценария, ₽/мес
+  otherSchedule?: Schedule; // график другого кредита (например, на ремонт) — для графиков
   insurance?: InsuranceCosts; // страховка по годам — если её считаем
 };
 
@@ -104,6 +115,7 @@ export type Extras = {
   extraPayment: number;
   extraMonthly: number;
   extraOverpayment: number;
+  otherSchedule?: Schedule; // график другого кредита, если сценарий его задал
 };
 
 const NO_EXTRAS: Extras = { extraIncome: 0, extraPayment: 0, extraMonthly: 0, extraOverpayment: 0 };
@@ -173,6 +185,8 @@ export function computeMetrics(
     schedule,
     interest: schedule.totalInterest,
     otherOverpayment: extras.extraOverpayment,
+    otherPayment: extras.extraPayment,
+    otherSchedule: extras.otherSchedule,
     insurance,
   };
 }
@@ -196,6 +210,51 @@ export type ScenarioResult = {
   // Если в сценарии есть досрочка — результат в другом режиме, для сравнения
   alternative?: { mode: EarlyMode; after: Metrics };
 };
+
+// ── Выводы по сценарию ───────────────────────────────────────────
+// Общие для всех сценариев правила, а не код под конкретный сценарий:
+// срабатывают по тому, какие эффекты задал админ.
+
+export type ScenarioInsights = {
+  coverage?: Explained; // доход сценария покрывает X% платежа (есть extraIncome > 0)
+  payback?: Explained; // через сколько месяцев окупятся расходы (сменилась ставка и есть разовые расходы)
+  cushion?: Explained; // подушка на время сценария (бюджет ушёл в минус и задана длительность)
+};
+
+export function scenarioInsights(r: ScenarioResult): ScenarioInsights {
+  const out: ScenarioInsights = {};
+  const P = r.before.payment.value;
+
+  const income = r.effects.extraIncome?.value ?? 0;
+  if (income > 0 && P > 0) {
+    out.coverage = explained("rentCoverage", (income / P) * 100, {
+      income: inp(income, "Доход сценария, ₽/мес"),
+      P: inp(P, "Платёж по ипотеке, ₽/мес"),
+    });
+  }
+
+  // Окупаемость = расходы / снижение платежа
+  const cost = r.effects.extraOverpayment?.value ?? 0;
+  const saving = P - r.after.payment.value;
+  if (r.effects.newRate && cost > 0 && saving > 0.5) {
+    out.payback = explained("payback", Math.ceil(cost / saving), {
+      cost: inp(cost, "Расходы, ₽"),
+      before: inp(P, "Платёж до, ₽/мес"),
+      after: inp(r.after.payment.value, "Платёж после, ₽/мес"),
+    });
+  }
+
+  // Подушка = нехватка в месяц · длительность
+  const lack = -r.after.budget.value;
+  const months = r.effects.durationMonths?.value ?? 0;
+  if (lack > 0 && months > 0) {
+    out.cushion = explained("cushion", lack * months, {
+      lack: inp(lack, "Не хватает в месяц, ₽"),
+      months: inp(months, "Сколько месяцев"),
+    });
+  }
+  return out;
+}
 
 export type ScenarioInput = {
   scenario: ScenarioDef;
@@ -247,6 +306,21 @@ export function applyScenario({
     extraMonthly: value("extraMonthly") ?? 0,
     extraOverpayment: value("extraOverpayment") ?? 0,
   };
+  value("durationMonths"); // в расчёт не входит: интерфейс считает по нему «подушку»
+
+  // Другой кредит (ремонт и т.п.): строим его собственный график той же функцией, что и ипотеку.
+  // Его платёж идёт в бюджет и ПДН, его проценты — в переплату.
+  const loan2Amount = value("loan2Amount");
+  if (loan2Amount && loan2Amount > 0) {
+    const other = buildSchedule({
+      principal: loan2Amount,
+      ratePct: value("loan2Rate") ?? 0,
+      months: Math.max(1, Math.round(value("loan2Months") ?? 12)),
+    });
+    extras.extraPayment += other.payment;
+    extras.extraOverpayment += other.totalInterest;
+    extras.otherSchedule = other;
+  }
 
   const eventsFor = (mode: EarlyMode): ScheduleEvents => ({
     earlyPayments: earlyAmount

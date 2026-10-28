@@ -21,7 +21,7 @@ import { RealPaymentBlock } from "./RealPaymentBlock";
 import { ResultCards } from "./ResultCards";
 import { ScenarioPanel } from "./ScenarioPanel";
 import type { BaseInput, PurchaseChoice } from "./types";
-import { YearlyChart } from "./YearlyChart";
+import { MonthlyChart, YearlyChart } from "./YearlyChart";
 import "./simulator.css";
 
 const SECTIONS = [
@@ -60,7 +60,7 @@ export function SimulatorPage() {
   // Значения параметров по сценариям: { "early-payment": { X: 500000, k: 12 }, … }
   const [paramValues, setParamValues] = useState<Record<string, Record<string, number>>>({});
   const [earlyMode, setEarlyMode] = useState<EarlyMode>("term");
-  const [chart, setChart] = useState<"balance" | "yearly">("balance");
+  const [chart, setChart] = useState<"balance" | "yearly" | "monthly">("balance");
 
   const scenarios = config.scenarios.filter((s) => !s.onlyFor || s.onlyFor === base.program);
   const scenario = scenarios.find((s) => s.id === requestedId) ?? null;
@@ -153,8 +153,8 @@ export function SimulatorPage() {
               <section className="panel" aria-labelledby="chart-heading">
                 <div className="chart-head">
                   <h3 id="chart-heading" className="panel-subtitle">
-                    {chart === "yearly"
-                      ? `Платёж по годам${scenario ? `: ${scenario.title}` : ""}`
+                    {chart !== "balance"
+                      ? `Платёж по ${chart === "yearly" ? "годам" : "месяцам"}${scenario ? `: ${scenario.title}` : ""}`
                       : scenario
                         ? `Остаток долга: ${scenario.title}`
                         : "Остаток долга по графику"}
@@ -162,8 +162,9 @@ export function SimulatorPage() {
                   <div className="segmented" role="radiogroup" aria-label="График">
                     {(
                       [
-                        ["balance", "Остаток долга"],
-                        ["yearly", "Платёж по годам"],
+                        ["balance", "Остаток"],
+                        ["yearly", "По годам"],
+                        ["monthly", "По месяцам"],
                       ] as const
                     ).map(([id, label]) => (
                       <button
@@ -183,11 +184,14 @@ export function SimulatorPage() {
                   <BalanceChart
                     before={result.before.schedule}
                     after={result.after?.schedule}
+                    other={result.after?.otherSchedule}
                     beforeLabel={scenario ? "Без изменений" : "Остаток долга"}
                     afterLabel="С учётом сценария"
                   />
-                ) : (
+                ) : chart === "yearly" ? (
                   <YearlyChart metrics={result.after ?? result.before} />
+                ) : (
+                  <MonthlyChart metrics={result.after ?? result.before} />
                 )}
               </section>
             </>
@@ -197,7 +201,7 @@ export function SimulatorPage() {
 
       <PlanBlock loan={loan} household={household} insurance={insurance} />
       <DepositVsEarlyBlock loan={loan} program={base.program} onOpenScenario={openScenario} />
-      <CityVsVillageBlock income={base.income} expenses={base.expenses} months={loan.months} />
+      <CityVsVillageBlock income={base.income} expenses={base.expenses} years={base.years} />
 
       {/* Второстепенные расчёты свёрнуты: открываются по клику, чтобы не спорить за внимание с главными */}
       <section className="feature" id="more" aria-labelledby="more-heading">

@@ -106,7 +106,7 @@ export function NavigatorPage() {
 
       <section className="nav-grid">
         <QuestionsPanel nav={nav} answers={answers} adjusted={adjusted} onAnswer={(q, o) => applyAnswers({ ...answers, [q]: o })} />
-        <Timeline stages={nav.stages} stepIds={nav.steps.map((s) => s.id)} route={route} done={done} onToggle={toggleDone} services={config.services} />
+        <Timeline stages={nav.stages} stepIds={nav.steps.map((s) => s.id)} route={route} done={done} onToggle={toggleDone} services={config.services} dealCosts={config.dealCosts} />
       </section>
     </main>
   );

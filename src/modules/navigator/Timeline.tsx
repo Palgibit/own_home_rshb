@@ -3,9 +3,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import type { RouteStep, Stage } from "../../core/navigator";
-import type { ServiceDef } from "../../config/schema";
-import { plural } from "../../ui/format";
+import { routeSummary, stepDocs, type RouteStep, type Stage } from "../../core/navigator";
+import type { DealCost, ServiceDef } from "../../config/schema";
+import { formatRub, plural } from "../../ui/format";
 import { TemplateText } from "../../ui/TemplateText";
 
 const LEAVE_MS = 360; // совпадает с длительностью анимации .is-leaving в navigator.css
@@ -17,7 +17,16 @@ type Props = {
   done: string[];
   onToggle: (stepId: string) => void;
   services: ServiceDef[];
+  dealCosts: DealCost[];
 };
+
+// Срок шага или маршрута: до двух месяцев — в днях, дальше — в месяцах
+export function formatDays(min: number, max: number): string {
+  if (max < 60) return min === max ? `${max} ${plural(max, ["день", "дня", "дней"])}` : `${min}–${max} ${plural(max, ["день", "дня", "дней"])}`;
+  const a = Math.max(1, Math.round(min / 30));
+  const b = Math.max(a, Math.round(max / 30));
+  return a === b ? `${b} мес` : `${a}–${b} мес`;
+}
 
 // Держит ушедшие шаги на экране, пока проигрывается анимация исчезновения
 function useLeavingSteps(route: RouteStep[]) {
@@ -46,10 +55,11 @@ function useLeavingSteps(route: RouteStep[]) {
 
 const stepsWord = (n: number) => `${n} ${plural(n, ["шаг", "шага", "шагов"])}`;
 
-export function Timeline({ stages, stepIds, route, done, onToggle, services }: Props) {
+export function Timeline({ stages, stepIds, route, done, onToggle, services, dealCosts }: Props) {
   const leaving = useLeavingSteps(route);
   const doneCount = route.filter((r) => done.includes(r.step.id)).length;
   const progress = route.length ? Math.round((doneCount / route.length) * 100) : 0;
+  const summary = routeSummary(route, dealCosts);
 
   // На экране — текущие шаги и те, что ещё исчезают; порядок — по этапам
   const leavingIds = new Set(leaving.map((r) => r.step.id));
@@ -74,6 +84,21 @@ export function Timeline({ stages, stepIds, route, done, onToggle, services }: P
         >
           <span style={{ width: `${progress}%` }} />
         </div>
+        {(summary.daysMax > 0 || summary.costTotal > 0) && (
+          <p className="nav-summary">
+            {summary.daysMax > 0 && (
+              <span>
+                <b>≈ {formatDays(summary.daysMin, summary.daysMax)}</b> на весь путь
+              </span>
+            )}
+            {summary.costTotal > 0 && (
+              <span title={summary.costs.map((c) => `${c.label}: ${formatRub(c.amount)}`).join("\n")}>
+                <b>≈ {formatRub(summary.costTotal)}</b> расходов на сделку
+              </span>
+            )}
+            <span className="nav-summary-note">ориентир: часть шагов можно делать параллельно, цены условные</span>
+          </p>
+        )}
       </div>
 
       <ol className="timeline">
@@ -100,6 +125,7 @@ export function Timeline({ stages, stepIds, route, done, onToggle, services }: P
                       done={done.includes(r.step.id)}
                       onToggle={() => onToggle(r.step.id)}
                       services={services}
+                      dealCosts={dealCosts}
                     />
                   ))}
                 </ul>
@@ -108,6 +134,20 @@ export function Timeline({ stages, stepIds, route, done, onToggle, services }: P
           );
         })}
       </ol>
+
+      {summary.docs.length > 0 && (
+        <details className="panel nav-docs">
+          <summary>
+            <span className="panel-title">Документы для вашего маршрута</span>
+            <span className="nav-progress-count">{summary.docs.length}</span>
+          </summary>
+          <ul className="nav-docs-list">
+            {summary.docs.map((d) => (
+              <li key={d}>{d}</li>
+            ))}
+          </ul>
+        </details>
+      )}
     </div>
   );
 }
@@ -118,10 +158,13 @@ type StepCardProps = {
   done: boolean;
   onToggle: () => void;
   services: ServiceDef[];
+  dealCosts: DealCost[];
 };
 
-function StepCard({ route, leaving, done, onToggle, services }: StepCardProps) {
+function StepCard({ route, leaving, done, onToggle, services, dealCosts }: StepCardProps) {
   const { step, text, calcLink, special } = route;
+  const costs = dealCosts.filter((c) => step.costs?.includes(c.id));
+  const docs = stepDocs(step);
   const linked = (step.services ?? [])
     .map((id) => services.find((s) => s.id === id))
     .filter((s): s is ServiceDef => Boolean(s));
@@ -145,6 +188,26 @@ function StepCard({ route, leaving, done, onToggle, services }: StepCardProps) {
         <p key={text} className="step-text">
           <TemplateText text={text} />
         </p>
+        {(step.days || costs.length > 0) && (
+          <p className="step-meta">
+            {step.days && <span>⏱ {formatDays(step.days[0], step.days[1])}</span>}
+            {costs.map((c) => (
+              <span key={c.id}>
+                {c.label}: {formatRub(c.amount)}
+              </span>
+            ))}
+          </p>
+        )}
+        {docs.length > 0 && (
+          <details className="step-docs">
+            <summary>Что подготовить</summary>
+            <ul>
+              {docs.map((d) => (
+                <li key={d}>{d}</li>
+              ))}
+            </ul>
+          </details>
+        )}
         {(calcLink || linked.length > 0) && (
           <div className="step-links">
             {calcLink && (

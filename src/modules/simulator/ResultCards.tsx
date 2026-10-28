@@ -5,7 +5,7 @@
 
 import type { EarlyMode } from "../../core/annuity";
 import type { Explained } from "../../core/explain";
-import { EFFECTS, pdnLevel, type EffectKey, type Metrics, type ScenarioResult } from "../../core/scenarios";
+import { EFFECTS, pdnLevel, scenarioInsights, type EffectKey, type Metrics, type ScenarioResult } from "../../core/scenarios";
 import { useConfig } from "../../config/ConfigContext";
 import { ExplainableNumber } from "../../ui/ExplainableNumber";
 import { formatBy, formatMonths, type Format } from "../../ui/format";
@@ -25,6 +25,9 @@ const EFFECT_FORMAT: Partial<Record<EffectKey, Format>> = {
   earlyMonth: "number",
   rateMonth: "number",
   newRate: "pct",
+  loan2Rate: "pct",
+  loan2Months: "number",
+  durationMonths: "number",
 };
 
 function Delta({ before, after, format, better }: { before: number; after: number; format: Format; better: Better }) {
@@ -67,6 +70,34 @@ function BeforeAfter({ before, after, format }: { before: Explained; after?: Exp
   );
 }
 
+// Выводы сценария плашками: покрытие платежа доходом, окупаемость расходов, подушка
+function Insights({ insights, lack }: { insights: ReturnType<typeof scenarioInsights>; lack: number }) {
+  const { coverage, payback, cushion } = insights;
+  if (!coverage && !payback && !cushion) return null;
+  return (
+    <div className="insights">
+      {coverage && (
+        <p className={`note ${coverage.value >= 100 ? "note-good" : ""}`}>
+          Доход по сценарию покрывает <ExplainableNumber value={coverage} format="pct" /> платежа по ипотеке
+          {coverage.value >= 100 ? " — полностью, и ещё остаётся." : "."}
+        </p>
+      )}
+      {payback && (
+        <p className="note">
+          Расходы окупятся за <ExplainableNumber value={payback} format="months" /> после смены ставки — дальше
+          меньший платёж приносит чистую выгоду.
+        </p>
+      )}
+      {cushion && (
+        <p className="note note-warn">
+          Каждый месяц не хватает {formatBy("rub", lack)}. Чтобы пережить этот период без просрочек, нужна подушка{" "}
+          <ExplainableNumber value={cushion} />.
+        </p>
+      )}
+    </div>
+  );
+}
+
 type Props = {
   // Без сценария есть только before: показываем значения без «было → стало»
   result: Pick<ScenarioResult, "before"> & Partial<ScenarioResult>;
@@ -77,6 +108,7 @@ export function ResultCards({ result, earlyMode }: Props) {
   const { globals } = useConfig();
   const { before, after, effects = {}, alternative } = result;
   const current = after ?? before;
+  const insights = after ? scenarioInsights(result as ScenarioResult) : null;
   const level = pdnLevel(current.pdn.value, globals.pdnYellow ?? 30, globals.pdnRed ?? 50);
 
   // Для сравнения режимов досрочки: какой результат к какому режиму относится
@@ -91,9 +123,10 @@ export function ResultCards({ result, earlyMode }: Props) {
         <h3 className="metric-label">Платёж по ипотеке в месяц</h3>
         <BeforeAfter before={before.payment} after={after?.payment} format="rub" />
         {after && <Delta before={before.payment.value} after={after.payment.value} format="rub" better="lower" />}
-        {effects.extraPayment && (
+        {current.otherPayment > 0.5 && (
           <span className="metric-extra">
-            + другой кредит <ExplainableNumber value={effects.extraPayment} /> в месяц
+            + другой кредит {formatBy("rub", current.otherPayment)} в месяц
+            {current.otherSchedule && <> · ещё {formatMonths(current.otherSchedule.months)}</>}
           </span>
         )}
       </article>
@@ -118,6 +151,8 @@ export function ResultCards({ result, earlyMode }: Props) {
           </article>
         ))}
       </div>
+
+      {insights && <Insights insights={insights} lack={-(after?.budget.value ?? 0)} />}
 
       {byMode && (
         <details className="table-view panel-details">

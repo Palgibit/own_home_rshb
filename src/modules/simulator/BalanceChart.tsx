@@ -9,7 +9,8 @@ export type LineSeries = {
   name: string;
   color: string;
   dashed?: boolean;
-  schedule: Schedule;
+  schedule: Schedule; // по нему — длина линии
+  value?: (month: number) => number | undefined; // своё значение вместо valueAt (например, сумма двух графиков)
 };
 
 type Props = {
@@ -30,7 +31,7 @@ export function MonthlyLines({ series, valueAt, yFormat, months, stepAfter }: Pr
   const total = months ?? Math.max(...series.map((s) => s.schedule.months));
   const data = Array.from({ length: total + 1 }, (_, m) => {
     const row: Record<string, number | undefined> = { month: m };
-    series.forEach((s, k) => (row[`s${k}`] = valueAt(s.schedule, m)));
+    series.forEach((s, k) => (row[`s${k}`] = s.value ? s.value(m) : valueAt(s.schedule, m)));
     return row;
   });
   // Подписи по оси X — каждые 5 лет (или каждый год для коротких кредитов)
@@ -132,16 +133,30 @@ export function paymentAt(schedule: Schedule, month: number): number | undefined
 type BalanceProps = {
   before: Schedule;
   after?: Schedule; // нет сценария — одна линия
+  other?: Schedule; // другой кредит сценария (ремонт): рисуем общий долг и сам кредит
   beforeLabel: string;
   afterLabel: string;
 };
 
-// Остаток долга «до/после»: без изменений — охра пунктиром, с учётом сценария — зелёная линия
-export function BalanceChart({ before, after, beforeLabel, afterLabel }: BalanceProps) {
+// Остаток долга «до/после»: без изменений — охра пунктиром, с учётом сценария — зелёная линия.
+// Если в сценарии есть другой кредит, «с учётом сценария» — общий долг (ипотека + другой кредит),
+// а сам другой кредит — отдельной розовой линией: видно, сколько он добавляет и когда закроется.
+export function BalanceChart({ before, after, other, beforeLabel, afterLabel }: BalanceProps) {
   const series: LineSeries[] = after
     ? [
         { name: beforeLabel, color: "var(--chart-before)", dashed: true, schedule: before },
-        { name: afterLabel, color: "var(--chart-after)", schedule: after },
+        other
+          ? {
+              name: `${afterLabel}: общий долг`,
+              color: "var(--chart-after)",
+              schedule: after.months >= other.months ? after : other,
+              value: (m: number) => balanceAt(after, m) + balanceAt(other, m),
+            }
+          : { name: afterLabel, color: "var(--chart-after)", schedule: after },
+        // После погашения линия другого кредита обрывается, а не лежит на нуле
+        ...(other
+          ? [{ name: "Другой кредит", color: "var(--chart-5)", schedule: other, value: (m: number) => (m <= other.months ? balanceAt(other, m) : undefined) }]
+          : []),
       ]
     : [{ name: beforeLabel, color: "var(--chart-after)", schedule: before }];
   return <MonthlyLines series={series} valueAt={balanceAt} yFormat={millions} />;

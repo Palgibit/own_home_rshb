@@ -11,6 +11,8 @@ import { defaultConfig } from "../../config/store";
 import { plural } from "../../ui/format";
 import { AfterTab } from "./AfterTab";
 import { FileTab } from "./FileTab";
+import { ChangesList } from "./ChangesList";
+import { diffConfig } from "./diff";
 import { HintsTab } from "./HintsTab";
 import { NavigatorTab } from "./NavigatorTab";
 import { ParamsTab } from "./ParamsTab";
@@ -128,11 +130,14 @@ function AdminEditor({ onLogout }: { onLogout: () => void }) {
   const [draft, setDraft] = useState<AppConfig>(() => structuredClone(config));
   const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [showErrors, setShowErrors] = useState(false);
+  const [showChanges, setShowChanges] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const tab: TabId = TABS.find(([id]) => id === searchParams.get("tab"))?.[0] ?? "params";
 
   const errors = useMemo(() => safeValidate(draft), [draft]);
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(config), [draft, config]);
+  // Что поменяется при сохранении: сохранённый конфиг → черновик
+  const changes = useMemo(() => (dirty ? diffConfig(config, draft) : []), [dirty, config, draft]);
 
   // Копия + изменение на месте: проще писать вложенные правки, а сохранённый конфиг не трогается
   const edit: Edit = (fn) =>
@@ -172,6 +177,7 @@ function AdminEditor({ onLogout }: { onLogout: () => void }) {
         return (
           <FileTab
             saved={config}
+            fromDefault={diffConfig(defaultConfig, config)}
             dirty={dirty}
             onImport={(c) => setDraft(c)}
             onReset={() => {
@@ -222,7 +228,9 @@ function AdminEditor({ onLogout }: { onLogout: () => void }) {
                 нельзя {showErrors ? "▾" : "▸"}
               </button>
             ) : dirty ? (
-              <span>Есть несохранённые изменения</span>
+              <button type="button" className="admin-link-button" onClick={() => setShowChanges((v) => !v)}>
+                Что поменяется при сохранении: {changes.length} {showChanges ? "▾" : "▸"}
+              </button>
             ) : (
               <span className="admin-status is-good">
                 {savedAt ? `Сохранено в ${savedAt.toLocaleTimeString("ru-RU").slice(0, 5)} — уже видно в модулях` : "Все изменения сохранены"}
@@ -238,6 +246,11 @@ function AdminEditor({ onLogout }: { onLogout: () => void }) {
             </button>
           </div>
         </div>
+        {showChanges && dirty && errors.length === 0 && (
+          <div className="admin-changes-list">
+            <ChangesList changes={changes} empty="Изменений нет." />
+          </div>
+        )}
         {showErrors && errors.length > 0 && (
           <ul className="admin-errors">
             {errors.map((e, i) => (

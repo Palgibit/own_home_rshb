@@ -14,9 +14,11 @@ import { todayIso, type DataSource } from "../../data/DataSource";
 import { demoInput, demoSource, manualSource } from "../../data/guest";
 import { ChangeLoanBlock } from "./ChangeLoanBlock";
 import { CertificatesBlock } from "./CertificatesBlock";
+import { CloseBlock } from "./CloseBlock";
 import { ClientBar, GuestSourcePanel, type GuestState } from "./SourcePanels";
 import { InsuranceBlock } from "./InsuranceBlock";
 import { LoginPanel } from "./LoginPanel";
+import { MilestonesBlock } from "./MilestonesBlock";
 import { MyLoanBlock } from "./MyLoanBlock";
 import { Reminders } from "./Reminders";
 import { RuralBlock } from "./RuralBlock";
@@ -90,11 +92,13 @@ export function AfterPage({ mode }: { mode: AfterMode }) {
 
   const sections = [
     ["loan", "Мой кредит"],
+    ["milestones", "Вехи"],
     ...(data?.program === "rural" ? [["rural", "Сельская ипотека"]] : []),
     ["early", "Досрочка"],
     ["tax", "Налоговый вычет"],
     ["certificates", "Справки"],
     ["insurance", "Страхование"],
+    ["close", "Закрытие"],
     ["settle", "Обустройство"],
   ];
 
@@ -144,11 +148,13 @@ export function AfterPage({ mode }: { mode: AfterMode }) {
           </nav>
 
           <MyLoanBlock data={data} status={status} />
+          <MilestonesBlock data={data} status={status} today={today} />
           {data.program === "rural" && <RuralBlock data={data} status={status} today={today} />}
           <ChangeLoanBlock data={data} status={status} />
           <TaxBlock data={data} status={status} />
           <CertificatesBlock data={data} status={status} today={today} onLogin={() => navigate("/after/cabinet")} />
           <InsuranceBlock data={data} today={today} />
+          <CloseBlock data={data} status={status} today={today} />
           <SettleBlock />
         </div>
       )}

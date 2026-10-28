@@ -305,6 +305,11 @@
   color: #5c4300;
 }
 
+.note-good {
+  background: var(--color-good-bg);
+  color: var(--color-brand-dark);
+}
+
 .note-action {
   display: flex;
   align-items: center;

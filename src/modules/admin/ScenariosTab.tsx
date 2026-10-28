@@ -29,6 +29,13 @@ function newScenario(existing: ScenarioDef[]): ScenarioDef {
   };
 }
 
+// Копия сценария: уникальный id «…-copy», «…-copy-2» и название «… (копия)»
+export function copyScenario(s: ScenarioDef, existing: ScenarioDef[]): ScenarioDef {
+  let id = `${s.id}-copy`;
+  for (let n = 2; existing.some((x) => x.id === id); n++) id = `${s.id}-copy-${n}`;
+  return { ...structuredClone(s), id, title: `${s.title} (копия)` };
+}
+
 export function ScenariosTab({ draft, edit }: { draft: AppConfig; edit: Edit }) {
   const [index, setIndex] = useState(0);
   const [focused, setFocused] = useState<EffectKey>("earlyAmount"); // куда вставлять переменную по клику
@@ -57,15 +64,6 @@ export function ScenariosTab({ draft, edit }: { draft: AppConfig; edit: Edit }) 
         <button type="button" className="button button-secondary" onClick={() => add(newScenario(scenarios))}>
           + Новый сценарий
         </button>
-        {s && (
-          <button
-            type="button"
-            className="admin-link-button"
-            onClick={() => add({ ...structuredClone(s), id: `${s.id}-copy`, title: `${s.title} (копия)` })}
-          >
-            Дублировать выбранный
-          </button>
-        )}
       </aside>
 
       {s ? (
@@ -73,6 +71,14 @@ export function ScenariosTab({ draft, edit }: { draft: AppConfig; edit: Edit }) 
           <section className="panel">
             <div className="admin-head">
               <h2 className="panel-title">{s.title || "Без названия"}</h2>
+              <button
+                type="button"
+                className="admin-link-button"
+                title="Новый сценарий на основе этого: параметры и формулы скопируются"
+                onClick={() => add(copyScenario(s, scenarios))}
+              >
+                Копировать сценарий
+              </button>
               <button
                 type="button"
                 className="admin-link-button is-danger"
@@ -159,18 +165,44 @@ function ParamsEditor({ scenario, set }: { scenario: ScenarioDef; set: (fn: (s: 
     <section className="panel">
       <h2 className="panel-title">Параметры сценария</h2>
       <p className="scenario-description">
-        Пользователь задаёт их ползунком в симуляторе. Имя параметра — переменная в формулах.
+        Пользователь задаёт их ползунком или галочкой в симуляторе. Имя параметра — переменная в формулах; у
+        галочки она равна 1 (включено) или 0 — например, <code>toLoan ? X : 0</code>.
       </p>
       {scenario.params.map((p, i) => (
         <div key={i} className="admin-param">
           <div className="admin-grid">
             <TextField label="Имя в формулах" mono value={p.id} onChange={(v) => setParam(i, { id: v.trim() })} />
             <TextField label="Подпись" value={p.label} onChange={(v) => setParam(i, { label: v })} />
-            <TextField label="Единица" value={p.unit} onChange={(v) => setParam(i, { unit: optional(v) })} />
-            <NumberField label="По умолчанию" value={p.default} onChange={(v) => setParam(i, { default: v })} />
-            <NumberField label="Минимум" value={p.min ?? 0} onChange={(v) => setParam(i, { min: v })} />
-            <NumberField label="Максимум" value={p.max ?? 0} onChange={(v) => setParam(i, { max: v })} />
-            <NumberField label="Шаг" value={p.step ?? 1} onChange={(v) => setParam(i, { step: v })} />
+            <SelectField<"number" | "toggle">
+              label="Тип"
+              value={p.kind ?? "number"}
+              options={[
+                ["number", "Число (ползунок)"],
+                ["toggle", "Галочка (0 или 1)"],
+              ]}
+              onChange={(v) =>
+                setParam(i, v === "toggle" ? { kind: "toggle", default: 0, min: undefined, max: undefined, step: undefined, unit: undefined } : { ...NEW_PARAM, id: p.id, label: p.label, kind: undefined })
+              }
+            />
+            {p.kind === "toggle" ? (
+              <SelectField<"0" | "1">
+                label="По умолчанию"
+                value={p.default === 1 ? "1" : "0"}
+                options={[
+                  ["0", "Выключена"],
+                  ["1", "Включена"],
+                ]}
+                onChange={(v) => setParam(i, { default: Number(v) })}
+              />
+            ) : (
+              <>
+                <TextField label="Единица" value={p.unit} onChange={(v) => setParam(i, { unit: optional(v) })} />
+                <NumberField label="По умолчанию" value={p.default} onChange={(v) => setParam(i, { default: v })} />
+                <NumberField label="Минимум" value={p.min ?? 0} onChange={(v) => setParam(i, { min: v })} />
+                <NumberField label="Максимум" value={p.max ?? 0} onChange={(v) => setParam(i, { max: v })} />
+                <NumberField label="Шаг" value={p.step ?? 1} onChange={(v) => setParam(i, { step: v })} />
+              </>
+            )}
           </div>
           <TextField label="Подсказка" value={p.hint} onChange={(v) => setParam(i, { hint: optional(v) })} />
           <button

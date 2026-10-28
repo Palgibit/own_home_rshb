@@ -54,8 +54,7 @@ export type SimulatorDefaults = {
   compareHorizonMonths: number; // … горизонт сравнения, мес
   coffeeExtra: number; // «чашка кофе»: доплата по умолчанию, ₽/мес
   coffeeMax: number; // … максимум ползунка, ₽/мес
-  ownFunds: number; // «город или село»: свои средства, ₽
-  familySize: number; // … человек в семье
+  familySize: number; // «город или село»: человек в семье
   planExample: PlanItem[]; // стартовый план досрочных платежей
 };
 
@@ -80,6 +79,7 @@ export type AfterDef = {
   salary: number; // зарплата по умолчанию в калькуляторе вычета, ₽/мес
   taxFaq: FaqItem[]; // справка по вычету над калькулятором
   taxSteps: string[];
+  closingSteps: string[]; // что сделать, когда кредит закрыт
   certificates: CertificateDef[];
   insuranceHint: string;
   ruralHint: string;
@@ -217,6 +217,12 @@ export function validateConfig(config: AppConfig): string[] {
       const where = `Сценарий «${s.title}», параметр «${p.label || p.id}»`;
       checkId(p.id, `Сценарий «${s.title}»`, own);
       if (!Number.isFinite(p.default)) errors.push(`${where}: значение по умолчанию должно быть числом`);
+      if (p.kind !== undefined && p.kind !== "number" && p.kind !== "toggle") errors.push(`${where}: тип — number или toggle`);
+      if (p.kind === "toggle") {
+        // Галочка: в формулах только 0 или 1, min/max/step не нужны
+        if (p.default !== 0 && p.default !== 1) errors.push(`${where}: у галочки значение по умолчанию 0 или 1`);
+        continue;
+      }
       // Ползунок в симуляторе строится по min/max: значение по умолчанию должно в них попадать
       if (p.min !== undefined && p.max !== undefined && p.min > p.max) errors.push(`${where}: минимум больше максимума`);
       else if ((p.min !== undefined && p.default < p.min) || (p.max !== undefined && p.default > p.max)) {
@@ -275,7 +281,7 @@ function validateRatesAndCosts(config: AppConfig): string[] {
 // Модуль 3: числа неотрицательные, сервисы существуют, {параметры} в текстах известны
 function validateAfter(config: AppConfig, globalIds: Set<string>): string[] {
   const a = config.after;
-  if (!a || typeof a !== "object" || !a.guestDemo || ![a.taxFaq, a.taxSteps, a.certificates, a.settleServices].every(Array.isArray)) {
+  if (!a || typeof a !== "object" || !a.guestDemo || ![a.taxFaq, a.taxSteps, a.closingSteps, a.certificates, a.settleServices].every(Array.isArray)) {
     return ["Нет раздела after (модуль «Жизнь после ипотеки») или в нём не хватает полей"];
   }
   const errors: string[] = [];
@@ -312,10 +318,11 @@ function validateAfter(config: AppConfig, globalIds: Set<string>): string[] {
   }
 
   if (a.taxSteps.some((t) => !t?.trim())) errors.push("После ипотеки, налоговый вычет: пустой шаг — удалите пустую строку");
+  if (a.closingSteps.some((t) => !t?.trim())) errors.push("После ипотеки, закрытие кредита: пустой шаг — удалите пустую строку");
   a.taxFaq.forEach((f, i) => {
     if (!f?.q?.trim() || !f?.a?.trim()) errors.push(`После ипотеки, справка по вычету, вопрос №${i + 1}: нужны и вопрос, и ответ`);
   });
-  for (const text of [...a.taxSteps, ...a.taxFaq.flatMap((f) => [f?.q, f?.a]), a.insuranceHint, a.ruralHint]) {
+  for (const text of [...a.taxSteps, ...a.closingSteps, ...a.taxFaq.flatMap((f) => [f?.q, f?.a]), a.insuranceHint, a.ruralHint]) {
     for (const p of templateParams(text ?? "")) {
       if (!globalIds.has(p)) errors.push(`После ипотеки: в тексте неизвестный параметр {${p}}`);
     }
@@ -386,6 +393,7 @@ function validateNavigator(config: AppConfig, globalIds: Set<string>, scenarioId
     if (scenario && !scenarioIds.has(scenario)) errors.push(`${where}: нет сценария «${scenario}»`);
   };
 
+  const costIds = new Set((config.dealCosts ?? []).map((c) => c.id));
   const stepIds = new Set<string>();
   for (const s of nav.steps) {
     const where = `Навигатор, шаг «${s.title}»`;
@@ -404,6 +412,13 @@ function validateNavigator(config: AppConfig, globalIds: Set<string>, scenarioId
       checkLink(v.calcLink, where);
     }
     for (const id of s.services ?? []) if (!serviceIds.has(id)) errors.push(`${where}: нет сервиса «${id}»`);
+    if (s.days !== undefined) {
+      const [min, max] = Array.isArray(s.days) ? s.days : [NaN, NaN];
+      if (!(Number.isFinite(min) && Number.isFinite(max) && min >= 0 && min <= max)) {
+        errors.push(`${where}: срок — два числа дней «от» и «до», «от» не больше «до»`);
+      }
+    }
+    for (const id of s.costs ?? []) if (!costIds.has(id)) errors.push(`${where}: нет расхода на сделку «${id}»`);
   }
 
   if (!nav.presets.length) errors.push("Навигатор: нужен хотя бы один типовой сценарий — с него открывается маршрут");
