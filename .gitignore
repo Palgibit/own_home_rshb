@@ -14,3 +14,7 @@ CLAUDE.md
 Фактчекинг.md
 stage_*.md
 correction.md
+
+# Исходник презентации — в репозитории только PDF
+presentation/index.html
+presentation/img/
